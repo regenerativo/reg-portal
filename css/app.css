@@ -69,7 +69,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--petroleo
 .kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:28px}
 .kpi{border:1px solid var(--gris-claro);border-radius:12px;padding:18px}
 .kpi .et{font-size:11px;font-family:var(--t-titulo);letter-spacing:.08em;text-transform:uppercase;color:var(--gris)}
-.kpi .va{font-family:var(--t-titulo);font-size:28px;font-weight:300;margin-top:8px}
+.kpi .va{font-family:var(--t-titulo);font-size:clamp(18px,1.9vw,28px);font-weight:300;margin-top:8px;white-space:nowrap}
 .kpi .su{font-size:12px;color:var(--gris);margin-top:2px}
 .barra{height:6px;background:var(--gris-fondo);border-radius:99px;margin-top:10px;overflow:hidden}
 .barra i{display:block;height:100%;background:var(--petroleo);border-radius:99px}
