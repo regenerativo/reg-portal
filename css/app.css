@@ -158,3 +158,89 @@ body.cargando::before{content:"";position:fixed;top:0;left:0;height:2px;width:10
 /* "26  I  NOMBRE": respetar los dos espacios */
 .cabeza h1, td b, .lado .grupo, .datos dd{white-space:pre-wrap}
 @media (max-width:820px){.acciones-fila{white-space:normal}.acciones-fila .btn{margin:3px 0 0 4px}}
+
+/* ============ Módulos ============ */
+.barra-doc{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+.barra-acc{display:flex;gap:6px;flex-wrap:wrap}
+.etiqueta.enviado{background:#F7F7D9;color:#6b6b12}
+.etiqueta.aprobado,.etiqueta.firmado{background:#E3F1F4;color:var(--petroleo)}
+.hoja{border:1px solid var(--gris-claro);border-radius:12px;padding:40px 48px;max-width:900px;background:var(--blanco)}
+.hoja h3,.doc-titulo{font-family:var(--t-titulo)}
+.doc-titulo{font-size:24px;font-weight:300;margin:0}
+.doc-sub{color:var(--gris);margin:4px 0 22px}
+.hoja h3{font-size:15px;font-weight:500;margin:24px 0 8px}
+.hoja p,.hoja li{line-height:1.6}
+.hoja table{width:100%;border-collapse:collapse;border:1px dotted var(--gris);margin:6px 0}
+.cifra{font-family:var(--t-titulo);font-size:22px;font-weight:300}
+.cierre{margin-top:34px;line-height:1.5}
+.firmas{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:50px}
+.firmas div{border-top:1px solid var(--negro);padding-top:8px}
+.var{background:#EEF7F9;border-radius:3px;padding:0 2px}
+.kpis-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.modal.ancho{max-width:860px}
+.cierre-tabla{width:100%;border-collapse:collapse}
+.cierre-tabla td{border-top:1px dotted var(--gris);padding:8px 10px}
+.cierre-tabla tr.total td{font-family:var(--t-titulo);font-weight:500;background:var(--gris-claro)}
+.tabla-pres tr.fila-cap td{background:#EDEDED;font-family:var(--t-titulo);font-weight:500;font-size:13px}
+.tabla-pres tr.fila-act td{background:#F7F7F7;font-weight:600}
+.fila-cap td{font-weight:600}
+tr.fila-act td{font-weight:600}
+input.cant{width:78px;padding:5px 8px;text-align:right}
+input.ancho-p{width:120px}
+.tabla-gantt input[type=date]{padding:5px 6px;width:140px}
+.tabla-gantt td{white-space:nowrap}
+/* estados del Gantt */
+.t-sin_iniciar{background:var(--gris-fondo)!important;color:var(--gris)}
+.t-retrasada{background:#F4E6E6!important;color:var(--vino)}
+.t-en_curso{background:#E3F1F4!important;color:var(--petroleo)}
+.t-en_curso_retraso{background:#FBEFE3!important;color:#9a4b00}
+.t-fin_antes{background:#E3F4EA!important;color:#1d6b3a}
+.t-fin_tiempo{background:#E3F1F4!important;color:var(--petroleo)}
+.t-fin_retraso{background:#F4E6E6!important;color:var(--vino)}
+.gantt-cont{overflow-x:auto;border:1px dotted var(--gris);border-radius:10px;margin-bottom:18px}
+.gantt{position:relative;padding:8px 0 14px}
+.g-cab{display:flex;height:22px}
+.g-dia{flex:none;font-size:10px;color:var(--gris);position:relative}
+.g-dia span{position:absolute;left:2px;white-space:nowrap}
+.g-cuerpo{position:relative}
+.g-rejilla{position:absolute;top:0;bottom:0;right:0}
+.g-rejilla i{position:absolute;top:0;bottom:0;border-left:1px dotted #CFCFCF}
+.g-rejilla i.libre{background:rgba(0,0,0,.025);width:22px}
+.g-hoy{position:absolute;top:-6px;bottom:0;width:3px;margin-left:-1px;background:var(--lima);border-radius:2px}
+.g-fila{position:relative;height:34px}
+.g-nombre{position:absolute;left:12px;width:200px;top:9px;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.g-barras{position:absolute;top:0;right:0;bottom:0}
+.g-esp{position:absolute;top:8px;height:6px;border-radius:99px;background:var(--esperado)}
+.g-real{position:absolute;top:17px;height:11px;border-radius:99px}
+.g-real.t-en_curso,.g-real.t-fin_tiempo{background:var(--petroleo)!important}
+.g-real.t-fin_antes{background:#2E8B57!important}
+.g-real.t-en_curso_retraso{background:#D9822B!important}
+.g-real.t-fin_retraso,.g-real.t-retrasada{background:var(--vino)!important}
+.g-leyenda{display:flex;gap:18px;font-size:12px;color:var(--gris);margin:-8px 0 18px;flex-wrap:wrap}
+.g-leyenda i{display:inline-block;width:22px;height:6px;border-radius:99px;margin-right:6px;vertical-align:middle}
+.l-esp{background:var(--esperado)}.l-real{background:var(--petroleo);height:10px!important}.l-hoy{background:var(--lima);width:4px!important;height:14px!important}
+@media (max-width:820px){.hoja{padding:22px 18px}.kpis-3{grid-template-columns:1fr}.firmas{grid-template-columns:1fr}}
+
+/* ============ Impresión: papel legal con membrete ============ */
+#impresion{display:none}
+@media print{
+  @page{size:8.5in 14in;margin:0}
+  body.imprimiendo .app,body.imprimiendo .modal-fondo{display:none!important}
+  body.imprimiendo #impresion{display:block}
+  #impresion{font-family:var(--t-texto);font-size:10.5pt;color:var(--negro);padding:0.55in 0.59in 1.0in 0.79in}
+  .imp-cabeza{display:flex;justify-content:space-between;align-items:flex-start}
+  .imp-servicio{font-family:var(--t-titulo);font-weight:500;font-size:11pt;letter-spacing:.04em}
+  .imp-servicios{font-family:var(--t-titulo);font-weight:300;font-size:10pt}
+  .imp-codigo{font-family:var(--t-titulo);font-size:9.5pt}
+  .imp-banda{height:0.30in;background:var(--gris-claro);margin:0.18in -0.59in 0.35in -0.79in}
+  .imp-cuerpo table{width:100%;border-collapse:collapse;margin:4pt 0;page-break-inside:auto}
+  .imp-cuerpo tr{page-break-inside:avoid}
+  .imp-cuerpo th{background:var(--gris-claro)!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;font-size:8.5pt;padding:5pt;text-align:left}
+  .imp-cuerpo td{border-top:1px dotted var(--gris);padding:4pt 5pt;font-size:9.5pt}
+  .imp-cuerpo h3{font-size:11pt;margin:14pt 0 5pt}
+  .imp-cuerpo .doc-titulo{font-size:17pt}
+  .imp-pie{position:fixed;left:0.79in;right:0.59in;bottom:0.4in;display:flex;justify-content:space-between;align-items:baseline;font-size:8.5pt}
+  .imp-pie .firma{margin:0}
+  .xxx{color:#800000!important}
+  .tabla-pres tr.fila-cap td,.cierre-tabla tr.total td{background:var(--gris-claro)!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}

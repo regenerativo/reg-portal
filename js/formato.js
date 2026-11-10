@@ -67,3 +67,19 @@ export function fechaCorte(corte) {
 export const DIAS_TRABAJO = { lv: 'Lunes a viernes', ls: 'Lunes a sábado', todos: 'Todos los días' };
 export const TIPOS = { diseno: 'Diseño', obra: 'Obra', ambos: 'Diseño y obra' };
 export const ESTADOS_ENCARGO = { activo: 'Activo', pausado: 'Pausado', cerrado: 'Cerrado' };
+
+/** Fecha en que termina una actividad que arranca en `inicio` y dura `n` días de trabajo. */
+export function finDeTrabajo(inicio, n, modo = 'lv', festivos = new Set()) {
+  let d = aFecha(inicio); if (!d || !n) return d;
+  let c = 0;
+  for (let i = 0; i < 1000; i++) {
+    if (esDiaDeTrabajo(d, modo, festivos)) { c++; if (c >= n) return d; }
+    d = new Date(d); d.setDate(d.getDate() + 1);
+  }
+  return d;
+}
+
+export const ESTADOS_TAREA = {
+  sin_iniciar: 'Sin iniciar', retrasada: 'Retrasada', en_curso: 'En curso', en_curso_retraso: 'En curso con retraso',
+  fin_antes: 'Finalizada antes', fin_tiempo: 'Finalizada a tiempo', fin_retraso: 'Finalizada con retraso',
+};

@@ -284,3 +284,47 @@ export async function despegarPropuesta(id) {
 }
 
 function diasEntre(a, b) { return Math.round((new Date(b) - new Date(a)) / 86400000); }
+
+// ================= Módulos del encargo =================
+async function q(fn) { if (MODO_DEMO) throw new Error('Este módulo funciona con la base de datos conectada.'); return fn(await cliente()); }
+const ok = ({ data, error }) => { if (error) throw new Error(error.message); return data; };
+
+export const documentos = (encargoId, tipo) => q(c => c.from('documentos').select('*').eq('encargo_id', encargoId).eq('tipo', tipo).order('numero').order('version')).then(ok);
+export const actualizarDocumento = (id, cambios) => q(c => c.from('documentos').update(cambios).eq('id', id).select().single()).then(ok);
+export const crearDocumento = doc => q(c => c.from('documentos').insert(doc).select().single()).then(ok);
+export const aprobarDocumento = (id, nombre, cedula) => q(c => c.rpc('aprobar_documento', { p_doc: id, p_nombre: nombre, p_cedula: cedula })).then(ok);
+
+export async function presupuestoCompleto(encargoId) {
+  const lista = await q(c => c.from('presupuestos').select('*, capitulos:presupuesto_capitulos(*, actividades:presupuesto_actividades(*, items:presupuesto_items(*, apu:apus(codigo))))').eq('encargo_id', encargoId).order('version', { ascending: false })).then(ok);
+  const p = lista[0]; if (!p) return null;
+  p.capitulos.sort((a, b) => a.orden - b.orden).forEach(c => { c.actividades.sort((a, b) => a.orden - b.orden).forEach(a => a.items.sort((x, y) => x.orden - y.orden)); });
+  return p;
+}
+export async function presupuestoResumen(encargoId) {
+  const lista = await q(c => c.from('presupuestos').select('*').eq('encargo_id', encargoId).order('version', { ascending: false })).then(ok);
+  const p = lista[0]; if (!p) return null;
+  p.resumen = await q(c => c.rpc('presupuesto_resumen', { p_presupuesto: p.id })).then(ok);
+  p.totalesActividad = await q(c => c.rpc('presupuesto_totales_actividad', { p_presupuesto: p.id })).then(ok);
+  return p;
+}
+export const actualizarItem = (id, cambios) => q(c => c.from('presupuesto_items').update(cambios).eq('id', id)).then(ok);
+export const eliminarItem = id => q(c => c.from('presupuesto_items').delete().eq('id', id)).then(ok);
+export const agregarItem = item => q(c => c.from('presupuesto_items').insert(item)).then(ok);
+export const actualizarPresupuesto = (id, cambios) => q(c => c.from('presupuestos').update(cambios).eq('id', id)).then(ok);
+
+export const apus = () => q(c => c.from('v_apus').select('*').order('codigo')).then(ok).then(l => l.sort((a, b) => ordenCodigo(a.codigo, b.codigo)));
+export const apuDetalle = id => q(c => c.from('apu_insumos').select('coeficiente, orden, insumo:insumos(*)').eq('apu_id', id).order('orden')).then(ok);
+export const insumos = () => q(c => c.from('insumos').select('*').order('nombre')).then(ok);
+export const actualizarInsumo = (id, cambios) => q(c => c.from('insumos').update(cambios).eq('id', id)).then(ok);
+
+export const ganttTareas = encargoId => q(c => c.from('gantt_tareas').select('*').eq('encargo_id', encargoId).order('orden')).then(ok);
+export const actualizarTarea = (id, cambios) => q(c => c.from('gantt_tareas').update(cambios).eq('id', id)).then(ok);
+
+export function ordenCodigo(a, b) {
+  const n = s => s.split(/[.\-]/).map(Number);
+  const x = n(a), y = n(b);
+  for (let i = 0; i < Math.max(x.length, y.length); i++) { const d = (x[i] || 0) - (y[i] || 0); if (d) return d; }
+  return 0;
+}
+
+export const miRol = encargoId => MODO_DEMO ? Promise.resolve('admin') : q(c => c.rpc('rol_en_encargo', { p_encargo: encargoId })).then(ok);

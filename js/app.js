@@ -1,4 +1,5 @@
 import * as D from './datos.js';
+import * as M from './modulos.js';
 import { cop, fecha, pct, diasDeTrabajo, fechaCorte, DIAS_TRABAJO, TIPOS, ESTADOS_ENCARGO } from './formato.js';
 
 const $ = (s, r = document) => r.querySelector(s);
@@ -9,8 +10,8 @@ let cargando = null;
 
 const MODULOS = [
   ['resumen', 'Resumen', true],
-  ['brief', 'Brief'], ['propuesta', 'Propuesta económica'], ['contrato', 'Contrato'], ['adendas', 'Adendas'],
-  ['presupuesto', 'Presupuesto'], ['gantt', 'Gantt'], ['informes', 'Informes'],
+  ['brief', 'Brief', true], ['propuesta', 'Propuesta económica', true], ['contrato', 'Contrato', true], ['adendas', 'Adendas', true],
+  ['presupuesto', 'Presupuesto', true], ['gantt', 'Gantt', true], ['informes', 'Informes', true],
   ['ajustes', 'Ajustes del encargo', true],
 ];
 const FASE = { brief: 2, propuesta: 2, contrato: 3, adendas: 3, presupuesto: 4, gantt: 5, informes: 5 };
@@ -44,7 +45,8 @@ async function irSeguro() {
   const p = ruta.split('/').filter(Boolean);
   try {
     if (p.length === 0) return await vistaEncargos(s);
-    if (p[0] === 'encargos' && p[1]) return await vistaExpediente(s, decodeURIComponent(p[1]), p[2] || 'resumen');
+    if (p[0] === 'encargos' && p[1]) return await vistaExpediente(s, decodeURIComponent(p[1]), p[2] || 'resumen', p[3]);
+    if (p[0] === 'base-precios' && s.admin) return await vistaBasePrecios(s, p[1]);
     if (p[0] === 'ajustes') return await vistaAjustes(s);
     if (p[0] === 'propuestas' && s.admin) return await vistaPropuestas(s);
     return marco(s, { titulo: 'Página no encontrada', html: `<div class="vacio">Esta página no existe. <a href="#/">Volver a los encargos</a></div>` });
@@ -60,6 +62,7 @@ function marco(s, { titulo, ruta = '', acciones = '', html, menu = null, activo 
     <div class="grupo">Portal</div>
     ${s.admin ? `<a href="#/propuestas" class="${activo === 'propuestas' ? 'activo' : ''}">Propuestas preliminares</a>` : ''}
     <a href="#/" class="${activo === 'encargos' ? 'activo' : ''}">Encargos</a>
+    ${s.admin ? `<a href="#/base-precios" class="${activo === 'base' ? 'activo' : ''}">Base de precios</a>` : ''}
     ${s.admin ? `<a href="#/ajustes" class="${activo === 'ajustes' ? 'activo' : ''}">Ajustes generales</a>` : ''}`;
   raiz.innerHTML = `
   <div class="app">
@@ -284,7 +287,7 @@ async function modalEncargo(e = null) {
 }
 
 // ---------------- Expediente ----------------
-async function vistaExpediente(s, codigo, seccion) {
+async function vistaExpediente(s, codigo, seccion, sub) {
   const e = await D.encargo(codigo);
   if (!e) return marco(s, { titulo: 'Encargo no encontrado', html: `<div class="vacio">No existe el encargo ${esc(codigo)} o no tienes acceso. <a href="#/">Volver a los encargos</a></div>` });
   const admin = await D.esAdmin();
@@ -296,7 +299,16 @@ async function vistaExpediente(s, codigo, seccion) {
   const comun = { s, menu, ruta: `Encargos / ${esc(e.codigo)}`, titulo: esc(e.nombre) };
   const fest = new Set((await D.festivos()).map(f => f.fecha));
 
+  const rol = s.admin ? 'admin' : await D.miRol(e.id);
+  const ctx = { e, s, admin, rol, esCliente: rol === 'cliente', fest, base, sub, recargar: ir };
+  if (M.VISTAS[seccion]) {
+    const v = await M.VISTAS[seccion](ctx);
+    marco(s, { ...comun, ruta: `Encargos / ${esc(e.codigo)} / ${nombreSec}`, html: v.html });
+    if (v.montar) v.montar();
+    return;
+  }
   if (seccion === 'resumen') {
+    const ind = await M.indicadores(ctx);
     const t = tiempoTranscurrido(e, fest);
     const total = e.inicio && e.fin ? diasDeTrabajo(e.inicio, e.fin, e.dias_trabajo, fest) : null;
     const corte = fechaCorte(e.fecha_corte);
@@ -305,8 +317,8 @@ async function vistaExpediente(s, codigo, seccion) {
       <div class="kpis">
         ${kpi('Tiempo transcurrido', pct(t), `Corte al ${fecha(corte)}`, t || 0)}
         ${kpi('Días de trabajo', total ?? '—', total ? `${Math.max(0, total - hechos)} restantes · ${DIAS_TRABAJO[e.dias_trabajo]}` : 'Faltan fechas')}
-        ${kpi('Avance real', '—', 'Se calcula desde el Gantt (fase 5)')}
-        ${kpi('Valor del contrato', '—', 'Desde la propuesta aprobada (fase 2)')}
+        ${kpi('Avance real', ind.avance != null ? pct(ind.avance) : '—', ind.avance != null ? `Esperado al corte ${pct(ind.esperado)}` : 'Sin cronograma todavía', ind.avance || 0)}
+        ${kpi('Valor del contrato', ind.contrato ? cop(ind.contrato) : '—', ind.contrato ? 'Propuesta + adendas aprobadas' : 'Sin propuesta aprobada')}
       </div>
       <div class="dos">
         <section class="panel">
@@ -326,7 +338,7 @@ async function vistaExpediente(s, codigo, seccion) {
         <section class="panel">
           <h3>Módulos</h3>
           <div class="modulos">${visibles.filter(([k]) => FASE[k]).map(([k, n]) =>
-            `<a class="modulo" href="${base}/${k}"><b>${n}</b><span>Próximamente · fase ${FASE[k]}</span></a>`).join('')}</div>
+            `<a class="modulo" href="${base}/${k}"><b>${n}</b><span>Abrir</span></a>`).join('')}</div>
         </section>
       </div>`;
     return marco({ ...s }, { ...comun, html, acciones: admin ? `<a class="btn sec" href="${base}/ajustes">Editar datos</a>` : '' });
@@ -560,4 +572,11 @@ async function modalPropuesta() {
     try { await D.crearPropuesta(v); fondo.remove(); ir(); }
     catch (err) { $('#aviso', fondo).textContent = err.message; }
   };
+}
+
+// ---------------- Base de precios ----------------
+async function vistaBasePrecios(s, pestana) {
+  const v = await M.vistaBase(s.admin, pestana === 'insumos' ? 'insumos' : 'apu');
+  marco(s, { titulo: 'Base de precios', ruta: 'Portal · común a todos los encargos', activo: 'base', html: v.html });
+  if (v.montar) v.montar(ir);
 }
