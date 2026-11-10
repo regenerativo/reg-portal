@@ -19,11 +19,23 @@ window.addEventListener('hashchange', ir);
 ir();
 
 async function ir() {
+  try { await irSeguro(); }
+  catch (err) {
+    console.error(err);
+    raiz.innerHTML = `<div class="acceso"><div class="acceso-caja"><img src="assets/isotipo.png" alt=""><h1>Sin conexión</h1><p>${esc(err.message || err)}</p>
+      <button class="btn full" onclick="location.reload()">Reintentar</button></div></div>`;
+  }
+}
+
+async function irSeguro() {
+  const enlace = await D.procesarEnlace();
+  if (enlace) return vistaNuevaClave(enlace);
   const ruta = location.hash.replace(/^#/, '') || '/';
   const s = await D.sesion();
   if (!s && ruta !== '/acceso' && ruta !== '/recuperar') { location.hash = '#/acceso'; return; }
   if (ruta === '/acceso') return vistaAcceso();
   if (ruta === '/recuperar') return vistaRecuperar();
+  if (ruta === '/nueva-clave') return vistaNuevaClave({ tipo: 'recovery' });
   const p = ruta.split('/').filter(Boolean);
   try {
     if (p.length === 0) return await vistaEncargos(s);
@@ -84,6 +96,31 @@ function vistaAcceso() {
   $('#f').onsubmit = async e => {
     e.preventDefault();
     try { await D.ingresar($('#email').value.trim(), $('#clave').value); location.hash = '#/'; }
+    catch (err) { $('#aviso').textContent = err.message; }
+  };
+}
+
+function vistaNuevaClave(enlace) {
+  if (enlace.error) {
+    raiz.innerHTML = `<div class="acceso"><div class="acceso-caja"><img src="assets/isotipo.png" alt=""><h1>El enlace ya no sirve</h1>
+      <p>${esc(enlace.error)}. Pide una nueva invitación o usa "Olvidé mi contraseña".</p><a class="btn full" href="#/acceso">Ir al ingreso</a></div></div>`;
+    return;
+  }
+  const bienvenida = enlace.tipo === 'invite';
+  raiz.innerHTML = `
+  <div class="acceso"><form class="acceso-caja" id="f">
+    <img src="assets/isotipo.png" alt="regenerativo">
+    <h1>${bienvenida ? 'Bienvenido al portal' : 'Nueva contraseña'}</h1>
+    <p>${bienvenida ? 'Crea tu contraseña para entrar a tus encargos.' : 'Escribe tu nueva contraseña.'}</p>
+    <label for="c1">Contraseña (mínimo 8 caracteres)</label><input id="c1" type="password" autocomplete="new-password" minlength="8" required>
+    <label for="c2">Repítela</label><input id="c2" type="password" autocomplete="new-password" minlength="8" required>
+    <button class="btn full" type="submit">Guardar y entrar</button>
+    <div class="aviso" id="aviso"></div>
+  </form></div>`;
+  $('#f').onsubmit = async e => {
+    e.preventDefault();
+    if ($('#c1').value !== $('#c2').value) { $('#aviso').textContent = 'Las contraseñas no coinciden.'; return; }
+    try { await D.cambiarClave($('#c1').value); history.replaceState(null, '', location.pathname + '#/'); ir(); }
     catch (err) { $('#aviso').textContent = err.message; }
   };
 }

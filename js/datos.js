@@ -6,7 +6,13 @@ let sb = null;
 
 async function cliente() {
   if (!sb) {
-    const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
+    let mod;
+    try { mod = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm'); }
+    catch (e) {
+      try { mod = await import('https://esm.sh/@supabase/supabase-js@2'); }
+      catch (e2) { throw new Error('No se pudo conectar con el servidor. Revisa tu conexión a internet y recarga la página.'); }
+    }
+    const { createClient } = mod;
     sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   }
   return sb;
@@ -86,6 +92,22 @@ export async function recuperarClave(email) {
   if (MODO_DEMO) return;
   const { error } = await (await cliente()).auth.resetPasswordForEmail(email, { redirectTo: location.origin + location.pathname + '#/nueva-clave' });
   if (error) throw error;
+}
+
+/** Enlaces de invitación o recuperación: Supabase vuelve con #access_token=…&type=invite|recovery */
+export async function procesarEnlace() {
+  const h = location.hash;
+  if (MODO_DEMO || !/access_token=|error_description=/.test(h)) return null;
+  const q = new URLSearchParams(h.replace(/^#\/?/, ''));
+  if (q.get('error_description')) return { error: q.get('error_description') };
+  const c = await cliente();
+  await c.auth.getSession();
+  return { tipo: q.get('type') || 'recovery' };
+}
+
+export async function cambiarClave(clave) {
+  const { error } = await (await cliente()).auth.updateUser({ password: clave });
+  if (error) throw new Error(error.message.includes('least') ? 'La contraseña debe tener al menos 8 caracteres.' : error.message);
 }
 
 export async function esAdmin() {
@@ -178,8 +200,14 @@ export async function guardarResponsables(encargoId, lista) {
 
 export async function invitar(email, encargoId, rol) {
   if (MODO_DEMO) throw new Error('Las invitaciones se activan cuando el portal esté conectado a la base de datos.');
-  const { error } = await (await cliente()).functions.invoke('invitar', { body: { email, encargo_id: encargoId, rol } });
-  if (error) throw error;
+  const { data, error } = await (await cliente()).functions.invoke('invitar',
+    { body: { email, encargo_id: encargoId, rol, redirect: location.origin + location.pathname } });
+  if (error) {
+    let msg = 'No se pudo enviar la invitación.';
+    try { msg = (await error.context.json()).error || msg; } catch (e) {}
+    throw new Error(msg);
+  }
+  return data;
 }
 
 export function reiniciarDemo() { try { localStorage.removeItem(CLAVE); } catch (e) {} }

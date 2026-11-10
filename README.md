@@ -21,5 +21,5 @@ Presupuesto (con APU), Gantt e informes de avance. Acceso solo por invitación (
 tablas con encabezado gris #D9D9D9 y líneas punteadas grises · imprimibles en papel legal vertical.
 
 ## Seguridad
-El primer usuario que se registra queda como administrador. Después de crearlo, **desactivar el registro público**
+El administrador inicial es apardo@regenerativo.co (lo asigna la base de datos). Además, **desactivar el registro público**
 en Supabase (Authentication → Sign In / Providers → "Allow new users to sign up" apagado); el resto entra por invitación.
