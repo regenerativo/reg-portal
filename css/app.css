@@ -54,7 +54,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--petroleo
 .lado a:hover{background:rgba(30,34,29,.06)}
 .lado a.activo{background:var(--blanco);color:var(--petroleo)}
 .lado a .pronto{font-size:10px;color:var(--gris)}
-.lado .pie{margin-top:auto;padding:16px 10px 0;font-size:12px;color:var(--gris)}
+.lado .pie{margin-top:auto;padding:16px 10px 0;font-size:12px;color:var(--gris);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .lado .pie button{background:none;border:0;padding:0;color:var(--petroleo);cursor:pointer;font-size:12px}
 
 .main{min-width:0;display:flex;flex-direction:column}
@@ -140,3 +140,9 @@ td.num,th.num{text-align:right;white-space:nowrap}
   .kpi{padding:14px}
   .kpi .va{font-size:20px}
 }
+
+/* Carga entre pantallas */
+body.cargando::before{content:"";position:fixed;top:0;left:0;height:2px;width:100%;z-index:50;background:linear-gradient(90deg,transparent,var(--petroleo),transparent);background-size:40% 100%;background-repeat:no-repeat;animation:carga 1s linear infinite}
+@keyframes carga{from{background-position:-40% 0}to{background-position:140% 0}}
+#resp input{min-width:0}
+#resp td:nth-child(2){width:55%}

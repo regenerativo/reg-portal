@@ -18,13 +18,16 @@ const FASE = { brief: 2, propuesta: 2, contrato: 3, adendas: 3, presupuesto: 4, 
 window.addEventListener('hashchange', ir);
 ir();
 
+let cargando = null;
 async function ir() {
+  clearTimeout(cargando);
+  cargando = setTimeout(() => document.body.classList.add('cargando'), 150);
   try { await irSeguro(); }
   catch (err) {
     console.error(err);
     raiz.innerHTML = `<div class="acceso"><div class="acceso-caja"><img src="assets/isotipo.png" alt=""><h1>Sin conexión</h1><p>${esc(err.message || err)}</p>
       <button class="btn full" onclick="location.reload()">Reintentar</button></div></div>`;
-  }
+  } finally { clearTimeout(cargando); document.body.classList.remove('cargando'); }
 }
 
 async function irSeguro() {
@@ -33,7 +36,7 @@ async function irSeguro() {
   if (enlace) { history.replaceState(null, '', location.pathname + '#/'); }
   const ruta = location.hash.replace(/^#/, '') || '/';
   const s = await D.sesion();
-  if (s) s.admin = await D.esAdmin();
+  if (s) s.admin = await D.esAdmin();  // se guarda en memoria por sesión (datos.js)
   if (!s && ruta !== '/acceso' && ruta !== '/recuperar') { location.hash = '#/acceso'; return; }
   if (ruta === '/acceso') return vistaAcceso();
   if (ruta === '/recuperar') return vistaRecuperar();

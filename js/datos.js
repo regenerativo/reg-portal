@@ -80,6 +80,7 @@ export async function ingresar(email, clave) {
   }
   const { data, error } = await (await cliente()).auth.signInWithPassword({ email, password: clave });
   if (error) throw new Error('Correo o contraseña incorrectos.');
+  _admin = null;
   return { email: data.user.email, id: data.user.id };
 }
 
@@ -91,6 +92,7 @@ export async function ingresarCliente(encargo, clave) {
   if (!email) throw new Error('Encargo o contraseña incorrectos.');
   const { data, error } = await c.auth.signInWithPassword({ email, password: clave });
   if (error) throw new Error('Encargo o contraseña incorrectos.');
+  _admin = null;
   return { email: data.user.email, id: data.user.id };
 }
 
@@ -107,6 +109,7 @@ export async function asignarAccesoCliente(encargoId, clave, quitar = false) {
 
 export async function salir() {
   if (MODO_DEMO) { try { sessionStorage.removeItem('reg-demo-sesion'); } catch (e) {} return; }
+  _admin = null; _festivos = null;
   await (await cliente()).auth.signOut();
 }
 
@@ -132,10 +135,11 @@ export async function cambiarClave(clave) {
   if (error) throw new Error(error.message.includes('least') ? 'La contraseña debe tener al menos 8 caracteres.' : error.message);
 }
 
+let _admin = null, _festivos = null;
 export async function esAdmin() {
   if (MODO_DEMO) return true;
-  const { data } = await (await cliente()).rpc('es_admin');
-  return !!data;
+  if (_admin === null) { const { data } = await (await cliente()).rpc('es_admin'); _admin = !!data; }
+  return _admin;
 }
 
 // ---------------- Catálogos ----------------
@@ -151,8 +155,9 @@ export async function clientes() {
 }
 export async function festivos() {
   if (MODO_DEMO) return leer().festivos;
+  if (_festivos) return _festivos;
   const { data, error } = await (await cliente()).from('festivos').select('fecha,nombre').order('fecha');
-  if (error) throw error; return data;
+  if (error) throw error; _festivos = data; return data;
 }
 export async function crearCliente(c) {
   if (MODO_DEMO) { const d = leer(); const n = { ...c, id: nuevoId() }; d.clientes.push(n); guardar(d); return n; }
