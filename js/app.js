@@ -32,6 +32,7 @@ async function irSeguro() {
   if (enlace) return vistaNuevaClave(enlace);
   const ruta = location.hash.replace(/^#/, '') || '/';
   const s = await D.sesion();
+  if (s) s.admin = await D.esAdmin();
   if (!s && ruta !== '/acceso' && ruta !== '/recuperar') { location.hash = '#/acceso'; return; }
   if (ruta === '/acceso') return vistaAcceso();
   if (ruta === '/recuperar') return vistaRecuperar();
@@ -53,14 +54,14 @@ function marco(s, { titulo, ruta = '', acciones = '', html, menu = null, activo 
   const enlacesGen = `
     <div class="grupo">Portal</div>
     <a href="#/" class="${activo === 'encargos' ? 'activo' : ''}">Encargos</a>
-    <a href="#/ajustes" class="${activo === 'ajustes' ? 'activo' : ''}">Ajustes generales</a>`;
+    ${s.admin ? `<a href="#/ajustes" class="${activo === 'ajustes' ? 'activo' : ''}">Ajustes generales</a>` : ''}`;
   raiz.innerHTML = `
   <div class="app">
     <nav class="lado" id="lado">
       <div class="marca"><img src="assets/isotipo.png" alt=""><span>regenerativo</span></div>
       ${menu || ''}
       ${enlacesGen}
-      <div class="pie">${esc(s.email)}<br><button id="salir">Cerrar sesión</button></div>
+      <div class="pie">${s.email.endsWith('@clientes.portal.regenerativo.co') ? 'Acceso de cliente' : esc(s.email)}<br><button id="salir">Cerrar sesión</button></div>
     </nav>
     <div class="main">
       ${D.MODO_DEMO ? '<div class="demo">Modo demostración: los datos son de ejemplo y se guardan solo en este navegador.</div>' : ''}
@@ -81,23 +82,41 @@ function marco(s, { titulo, ruta = '', acciones = '', html, menu = null, activo 
 
 // ---------------- Acceso ----------------
 function vistaAcceso() {
-  raiz.innerHTML = `
-  <div class="acceso"><form class="acceso-caja" id="f">
-    <img src="assets/isotipo.png" alt="regenerativo">
-    <h1>Portal de encargos</h1>
-    <p>Ingresa con el correo al que te llegó la invitación.</p>
-    <label for="email">Correo</label><input id="email" type="email" autocomplete="username" required>
-    <label for="clave">Contraseña</label><input id="clave" type="password" autocomplete="current-password" ${D.MODO_DEMO ? '' : 'required'}>
-    <button class="btn full" type="submit">Ingresar</button>
-    <div class="aviso" id="aviso"></div>
-    <p style="margin:18px 0 0;font-size:13px"><a href="#/recuperar">Olvidé mi contraseña</a></p>
-    <div class="firma">Por ＿ regenerativo</div>
-  </form></div>`;
-  $('#f').onsubmit = async e => {
-    e.preventDefault();
-    try { await D.ingresar($('#email').value.trim(), $('#clave').value); location.hash = '#/'; }
-    catch (err) { $('#aviso').textContent = err.message; }
+  let modo = sessionStorage.getItem('reg-modo-acceso') || 'cliente';
+  const pintar = () => {
+    const cli = modo === 'cliente';
+    raiz.innerHTML = `
+    <div class="acceso"><form class="acceso-caja" id="f">
+      <img src="assets/isotipo.png" alt="regenerativo">
+      <h1>Portal de encargos</h1>
+      <div class="pestanas">
+        <button type="button" class="${cli ? 'activa' : ''}" data-m="cliente">Clientes</button>
+        <button type="button" class="${cli ? '' : 'activa'}" data-m="equipo">Equipo regenerativo</button>
+      </div>
+      ${cli
+        ? `<label for="usuario">Nombre del encargo</label><input id="usuario" autocomplete="username" placeholder="Ej.: 26 I CEREZO 44" required>`
+        : `<label for="usuario">Correo</label><input id="usuario" type="email" autocomplete="username" required>`}
+      <label for="clave">Contraseña</label><input id="clave" type="password" autocomplete="current-password" ${D.MODO_DEMO ? '' : 'required'}>
+      <button class="btn full" type="submit">Ingresar</button>
+      <div class="aviso" id="aviso"></div>
+      ${cli ? '<p class="sub" style="margin:18px 0 0">¿No tienes la contraseña? Pídela a regenerativo.</p>'
+            : '<p style="margin:18px 0 0;font-size:13px"><a href="#/recuperar">Olvidé mi contraseña</a></p>'}
+      <div class="firma">Por ＿ regenerativo</div>
+    </form></div>`;
+    document.querySelectorAll('.pestanas button').forEach(b => b.onclick = () => {
+      modo = b.dataset.m; try { sessionStorage.setItem('reg-modo-acceso', modo); } catch (e) {} pintar();
+    });
+    $('#f').onsubmit = async e => {
+      e.preventDefault();
+      const btn = $('#f .btn.full'); btn.disabled = true; $('#aviso').textContent = '';
+      try {
+        if (modo === 'cliente') await D.ingresarCliente($('#usuario').value, $('#clave').value);
+        else await D.ingresar($('#usuario').value.trim(), $('#clave').value);
+        location.hash = '#/';
+      } catch (err) { $('#aviso').textContent = err.message; btn.disabled = false; }
+    };
   };
+  pintar();
 }
 
 function vistaNuevaClave(enlace) {
@@ -146,7 +165,8 @@ function vistaRecuperar() {
 // ---------------- Lista de encargos ----------------
 async function vistaEncargos(s) {
   const lista = await D.encargos();
-  const admin = await D.esAdmin();
+  const admin = s.admin;
+  if (!admin && lista.length === 1) { location.replace(`#/encargos/${encodeURIComponent(lista[0].codigo)}`); return; }
   const fest = new Set((await D.festivos()).map(f => f.fecha));
   const conTiempo = lista.map(e => ({ ...e, tiempo: tiempoTranscurrido(e, fest) }));
   const activos = conTiempo.filter(e => e.estado === 'activo');
@@ -324,11 +344,24 @@ async function vistaExpediente(s, codigo, seccion) {
           <div class="aviso" id="aviso-resp"></div>
         </section>
         <section class="panel">
-          <h3>Invitar personas</h3>
-          <p class="sub" style="margin-top:-6px">Equipo: edita avances y fechas reales. Cliente: solo lee, comenta y aprueba.</p>
+          <h3>Acceso del cliente</h3>
+          <p class="sub" style="margin-top:-6px">El cliente entra en la pestaña "Clientes" con el nombre del encargo y esta contraseña. Solo puede ver este encargo. Al cambiarla, todos los que tenían la anterior quedan fuera.</p>
+          <dl class="datos" style="margin:10px 0 4px"><dt>Usuario</dt><dd class="det">${esc(e.nombre)}</dd>
+            <dt>Estado</dt><dd class="det">${e.cliente_usuario_id ? 'Activo' : '<span class="xxx">Sin acceso asignado</span>'}</dd></dl>
+          <label>${e.cliente_usuario_id ? 'Nueva contraseña' : 'Contraseña'} (mínimo 8 caracteres)</label>
+          <input id="clave-cliente" type="text" autocomplete="off" minlength="8">
+          <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+            <button class="btn" id="asignar-clave">${e.cliente_usuario_id ? 'Cambiar contraseña' : 'Asignar contraseña'}</button>
+            ${e.cliente_usuario_id ? '<button class="btn sec" id="quitar-clave">Quitar acceso</button>' : ''}
+          </div>
+          <div class="aviso" id="aviso-cli"></div>
+        </section>
+        <section class="panel">
+          <h3>Invitar equipo</h3>
+          <p class="sub" style="margin-top:-6px">Le llega un correo para crear su contraseña. Equipo: edita avances y fechas reales.</p>
           <div class="grilla-form">
             <div><label>Correo</label><input id="inv-email" type="email"></div>
-            <div><label>Rol</label><select id="inv-rol"><option value="cliente">Cliente</option><option value="equipo">Equipo</option></select></div>
+            <div><label>Rol</label><select id="inv-rol"><option value="equipo">Equipo</option><option value="cliente">Cliente (con su propio correo)</option></select></div>
           </div>
           <button class="btn" id="invitar" style="margin-top:14px">Enviar invitación</button>
           <div class="aviso" id="aviso-inv"></div>
@@ -352,6 +385,17 @@ async function vistaExpediente(s, codigo, seccion) {
     $('#guardar-resp').onclick = async () => {
       try { await D.guardarResponsables(e.id, resp.filter(r => r.nombre.trim())); $('#aviso-resp').style.color = 'var(--petroleo)'; $('#aviso-resp').textContent = 'Responsables guardados.'; }
       catch (err) { $('#aviso-resp').textContent = err.message; }
+    };
+    $('#asignar-clave').onclick = async () => {
+      const clave = $('#clave-cliente').value;
+      if (clave.length < 8) { $('#aviso-cli').textContent = 'La contraseña debe tener al menos 8 caracteres.'; return; }
+      try { await D.asignarAccesoCliente(e.id, clave); ir(); }
+      catch (err) { $('#aviso-cli').textContent = err.message; }
+    };
+    const q = $('#quitar-clave');
+    if (q) q.onclick = async () => {
+      try { await D.asignarAccesoCliente(e.id, null, true); ir(); }
+      catch (err) { $('#aviso-cli').textContent = err.message; }
     };
     $('#invitar').onclick = async () => {
       try { await D.invitar($('#inv-email').value.trim(), e.id, $('#inv-rol').value); $('#aviso-inv').style.color = 'var(--petroleo)'; $('#aviso-inv').textContent = 'Invitación enviada.'; }

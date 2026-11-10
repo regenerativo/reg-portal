@@ -83,6 +83,28 @@ export async function ingresar(email, clave) {
   return { email: data.user.email, id: data.user.id };
 }
 
+/** Clientes: nombre (o código) del encargo + contraseña asignada por regenerativo. */
+export async function ingresarCliente(encargo, clave) {
+  if (MODO_DEMO) return ingresar('cliente@demo', clave);
+  const c = await cliente();
+  const { data: email } = await c.rpc('usuario_cliente', { p_encargo: encargo });
+  if (!email) throw new Error('Encargo o contraseña incorrectos.');
+  const { data, error } = await c.auth.signInWithPassword({ email, password: clave });
+  if (error) throw new Error('Encargo o contraseña incorrectos.');
+  return { email: data.user.email, id: data.user.id };
+}
+
+export async function asignarAccesoCliente(encargoId, clave, quitar = false) {
+  if (MODO_DEMO) throw new Error('Disponible cuando el portal esté conectado a la base de datos.');
+  const { data, error } = await (await cliente()).functions.invoke('acceso-cliente', { body: { encargo_id: encargoId, clave, quitar } });
+  if (error) {
+    let msg = 'No se pudo guardar el acceso.';
+    try { msg = (await error.context.json()).error || msg; } catch (e) {}
+    throw new Error(msg);
+  }
+  return data;
+}
+
 export async function salir() {
   if (MODO_DEMO) { try { sessionStorage.removeItem('reg-demo-sesion'); } catch (e) {} return; }
   await (await cliente()).auth.signOut();

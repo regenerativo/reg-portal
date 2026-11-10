@@ -23,3 +23,8 @@ tablas con encabezado gris #D9D9D9 y líneas punteadas grises · imprimibles en 
 ## Seguridad
 El administrador inicial es apardo@regenerativo.co (lo asigna la base de datos). Además, **desactivar el registro público**
 en Supabase (Authentication → Sign In / Providers → "Allow new users to sign up" apagado); el resto entra por invitación.
+
+## Acceso
+- **Equipo regenerativo:** correo + contraseña (invitación por correo).
+- **Clientes:** nombre del encargo + contraseña asignada en Ajustes del encargo. Cada encargo tiene su propia cuenta de cliente;
+  cambiar la contraseña cierra todas las sesiones anteriores. Desde la fase 2, toda aprobación pide nombre y cédula de quien aprueba.
