@@ -146,3 +146,15 @@ body.cargando::before{content:"";position:fixed;top:0;left:0;height:2px;width:10
 @keyframes carga{from{background-position:-40% 0}to{background-position:140% 0}}
 #resp input{min-width:0}
 #resp td:nth-child(2){width:55%}
+
+.btn.mini{padding:6px 12px;font-size:12px}
+.btn.ok{background:var(--petroleo);border-color:var(--petroleo);color:var(--blanco)}
+.acciones-fila{white-space:nowrap;text-align:right}
+.acciones-fila .btn+.btn{margin-left:6px}
+.etiqueta.borrador{background:var(--gris-fondo)}
+.etiqueta.en_espera{background:#F7F7D9;color:#6b6b12}
+.etiqueta.despego{background:#E3F1F4;color:var(--petroleo)}
+.etiqueta.no_despego{background:#F4E6E6;color:var(--vino)}
+/* "26  I  NOMBRE": respetar los dos espacios */
+.cabeza h1, td b, .lado .grupo, .datos dd{white-space:pre-wrap}
+@media (max-width:820px){.acciones-fila{white-space:normal}.acciones-fila .btn{margin:3px 0 0 4px}}

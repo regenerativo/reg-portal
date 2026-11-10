@@ -191,7 +191,8 @@ export async function encargo(codigo) {
 /** Siguiente código SCREG_aaNNN según los existentes del año. */
 export async function siguienteCodigo(anio = new Date().getFullYear()) {
   const aa = String(anio).slice(2);
-  const nums = (await encargos()).map(e => (new RegExp(`^SCREG_${aa}(\\d{3})$`).exec(e.codigo) || [])[1]).filter(Boolean).map(Number);
+  const usados = [...(await encargos()), ...(await propuestas().catch(() => []))];
+  const nums = usados.map(e => (new RegExp(`^SCREG_${aa}(\\d{3})$`).exec(e.codigo) || [])[1]).filter(Boolean).map(Number);
   const n = (nums.length ? Math.max(...nums) : 0) + 1;
   return `SCREG_${aa}${String(n).padStart(3, '0')}`;
 }
@@ -238,3 +239,48 @@ export async function invitar(email, encargoId, rol) {
 }
 
 export function reiniciarDemo() { try { localStorage.removeItem(CLAVE); } catch (e) {} }
+
+// ---------------- Propuestas preliminares ----------------
+export const ESTADOS_PROPUESTA = { borrador: 'Borrador', en_espera: 'En espera', despego: 'Despegó', no_despego: 'No despegó' };
+
+export async function propuestas() {
+  if (MODO_DEMO) {
+    const d = leer(); d.propuestas = d.propuestas || [];
+    const hoy = new Date().toISOString().slice(0, 10);
+    d.propuestas.forEach(p => { if (p.estado === 'en_espera' && p.fecha_envio && diasEntre(p.fecha_envio, hoy) >= 30) { p.estado = 'no_despego'; p.motivo = p.motivo || 'Sin respuesta en 30 días'; } });
+    guardar(d);
+    return d.propuestas.map(p => ({ ...p, cliente: d.clientes.find(c => c.id === p.cliente_id) || null, servicio: d.servicios.find(x => x.id === p.servicio_id) || null }));
+  }
+  const c = await cliente();
+  await c.rpc('vencer_propuestas');
+  const { data, error } = await c.from('propuestas').select('*, cliente:clientes(*), servicio:servicios(*)').order('codigo', { ascending: false });
+  if (error) throw error; return data;
+}
+
+export async function crearPropuesta(p) {
+  if (MODO_DEMO) { const d = leer(); d.propuestas = d.propuestas || []; const n = { ...p, id: nuevoId(), estado: 'borrador', fecha: new Date().toISOString().slice(0, 10) }; d.propuestas.push(n); guardar(d); return n; }
+  const { data, error } = await (await cliente()).from('propuestas').insert(p).select().single();
+  if (error) throw new Error(error.message.includes('duplicate') ? 'Ya existe una propuesta con ese código.' : error.message);
+  return data;
+}
+
+export async function actualizarPropuesta(id, cambios) {
+  if (MODO_DEMO) { const d = leer(); const p = d.propuestas.find(x => x.id === id); Object.assign(p, cambios); guardar(d); return p; }
+  const { data, error } = await (await cliente()).from('propuestas').update(cambios).eq('id', id).select().single();
+  if (error) throw error; return data;
+}
+
+/** "Despegó": crea el encargo "26  I  NOMBRE" con el mismo código. Devuelve el código. */
+export async function despegarPropuesta(id) {
+  if (MODO_DEMO) {
+    const d = leer(); const p = d.propuestas.find(x => x.id === id);
+    const e = { id: nuevoId(), codigo: p.codigo, nombre: `${p.codigo.slice(6, 8)}  I  ${p.nombre.toUpperCase()}`, cliente_id: p.cliente_id, servicio_id: p.servicio_id,
+      tipo: p.tipo, inicio: new Date().toISOString().slice(0, 10), fin: null, dias_trabajo: 'lv', estado: 'activo' };
+    d.encargos.push(e); Object.assign(p, { estado: 'despego', encargo_id: e.id, fecha_decision: e.inicio }); guardar(d); return p.codigo;
+  }
+  const { data, error } = await (await cliente()).rpc('despegar_propuesta', { p_id: id });
+  if (error) throw new Error(error.message.includes('duplicate') ? 'Ya existe un encargo con ese código.' : error.message);
+  return data;
+}
+
+function diasEntre(a, b) { return Math.round((new Date(b) - new Date(a)) / 86400000); }

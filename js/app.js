@@ -5,6 +5,7 @@ const $ = (s, r = document) => r.querySelector(s);
 const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const xxx = v => (v === null || v === undefined || v === '' || v === 'XXX') ? '<span class="xxx">XXX</span>' : esc(v);
 const raiz = $('#raiz');
+let cargando = null;
 
 const MODULOS = [
   ['resumen', 'Resumen', true],
@@ -18,7 +19,6 @@ const FASE = { brief: 2, propuesta: 2, contrato: 3, adendas: 3, presupuesto: 4, 
 window.addEventListener('hashchange', ir);
 ir();
 
-let cargando = null;
 async function ir() {
   clearTimeout(cargando);
   cargando = setTimeout(() => document.body.classList.add('cargando'), 150);
@@ -46,6 +46,7 @@ async function irSeguro() {
     if (p.length === 0) return await vistaEncargos(s);
     if (p[0] === 'encargos' && p[1]) return await vistaExpediente(s, decodeURIComponent(p[1]), p[2] || 'resumen');
     if (p[0] === 'ajustes') return await vistaAjustes(s);
+    if (p[0] === 'propuestas' && s.admin) return await vistaPropuestas(s);
     return marco(s, { titulo: 'Página no encontrada', html: `<div class="vacio">Esta página no existe. <a href="#/">Volver a los encargos</a></div>` });
   } catch (err) {
     console.error(err);
@@ -57,6 +58,7 @@ async function irSeguro() {
 function marco(s, { titulo, ruta = '', acciones = '', html, menu = null, activo = '' }) {
   const enlacesGen = `
     <div class="grupo">Portal</div>
+    ${s.admin ? `<a href="#/propuestas" class="${activo === 'propuestas' ? 'activo' : ''}">Propuestas preliminares</a>` : ''}
     <a href="#/" class="${activo === 'encargos' ? 'activo' : ''}">Encargos</a>
     ${s.admin ? `<a href="#/ajustes" class="${activo === 'ajustes' ? 'activo' : ''}">Ajustes generales</a>` : ''}`;
   raiz.innerHTML = `
@@ -442,4 +444,120 @@ async function vistaAjustes(s) {
     </div>`;
   marco(s, { titulo: 'Ajustes generales', ruta: 'Portal', activo: 'ajustes', html });
   const r = $('#reiniciar'); if (r) r.onclick = () => { D.reiniciarDemo(); location.hash = '#/'; ir(); };
+}
+
+// ---------------- Propuestas preliminares ----------------
+async function vistaPropuestas(s) {
+  const lista = await D.propuestas();
+  const n = k => lista.filter(p => p.estado === k).length;
+  const html = `
+    <div class="kpis">
+      ${kpi('En borrador', n('borrador'), 'Sin enviar')}
+      ${kpi('En espera', n('en_espera'), 'Enviadas · 30 días para decidir')}
+      ${kpi('Despegaron', n('despego'), 'Ya son encargos')}
+      ${kpi('No despegaron', n('no_despego'), 'Archivadas')}
+    </div>
+    <div class="filtros">
+      <input id="buscar" placeholder="Buscar por nombre, código o cliente">
+      <select id="festado"><option value="">Todas</option>${Object.entries(D.ESTADOS_PROPUESTA).map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}</select>
+    </div>
+    <div id="tabla"></div>`;
+  marco(s, { titulo: 'Propuestas preliminares', ruta: 'Portal', activo: 'propuestas', html,
+    acciones: '<button class="btn" id="nueva">+ Nueva propuesta</button>' });
+  const pintar = () => {
+    const q = $('#buscar').value.toLowerCase(), est = $('#festado').value;
+    const f = lista.filter(p => (!est || p.estado === est) && (!q || [p.nombre, p.codigo, p.cliente?.nombre].join(' ').toLowerCase().includes(q)));
+    $('#tabla').innerHTML = f.length ? `
+      <div class="tabla-cont"><table>
+        <thead><tr><th class="col-opc">Código</th><th>Propuesta</th><th class="col-opc">Cliente</th><th class="num col-opc">Honorarios</th><th class="col-opc">Enviada</th><th>Estado</th><th></th></tr></thead>
+        <tbody>${f.map(p => `
+          <tr>
+            <td class="sub col-opc">${esc(p.codigo)}</td>
+            <td><b>${esc(p.nombre)}</b><div class="sub">${esc(p.servicio?.nombre || '')}<span class="solo-movil"> · ${esc(p.codigo)}</span></div></td>
+            <td class="col-opc">${xxx(p.cliente?.nombre)}</td>
+            <td class="num col-opc">${p.honorarios ? cop(p.honorarios) : '—'}</td>
+            <td class="col-opc">${p.fecha_envio ? fecha(p.fecha_envio) + (p.estado === 'en_espera' ? `<div class="sub">${quedan(p.fecha_envio)}</div>` : '') : '—'}</td>
+            <td><span class="etiqueta ${p.estado}">${D.ESTADOS_PROPUESTA[p.estado]}</span>${p.estado === 'no_despego' && p.motivo ? `<div class="sub">${esc(p.motivo)}</div>` : ''}</td>
+            <td class="acciones-fila">${accionesPropuesta(p)}</td>
+          </tr>`).join('')}</tbody></table></div>`
+      : `<div class="vacio">${lista.length ? 'Ninguna propuesta coincide.' : 'Todavía no hay propuestas preliminares.'}</div>`;
+    document.querySelectorAll('[data-acc]').forEach(b => b.onclick = () => accion(b.dataset.acc, lista.find(p => p.id === b.dataset.id)));
+  };
+  const accion = async (acc, p) => {
+    try {
+      const hoy = new Date().toISOString().slice(0, 10);
+      if (acc === 'enviar') await D.actualizarPropuesta(p.id, { estado: 'en_espera', fecha_envio: hoy });
+      if (acc === 'no') {
+        const motivo = prompt('¿Por qué no despegó? (opcional)') ?? null;
+        if (motivo === null) return;
+        await D.actualizarPropuesta(p.id, { estado: 'no_despego', fecha_decision: hoy, motivo: motivo || 'Sin motivo' });
+      }
+      if (acc === 'reabrir') await D.actualizarPropuesta(p.id, { estado: 'en_espera', fecha_envio: hoy, motivo: null, fecha_decision: null });
+      if (acc === 'despego') {
+        if (!confirm(`¿${p.nombre} despegó? Se crea el encargo ${p.codigo}.`)) return;
+        const codigo = await D.despegarPropuesta(p.id);
+        location.hash = `#/encargos/${encodeURIComponent(codigo)}/ajustes`; return;
+      }
+      if (acc === 'ver') { location.hash = `#/encargos/${encodeURIComponent(p.codigo)}`; return; }
+      ir();
+    } catch (err) { alert(err.message); }
+  };
+  $('#buscar').oninput = pintar; $('#festado').onchange = pintar; pintar();
+  $('#nueva').onclick = () => modalPropuesta();
+}
+
+function quedan(fechaEnvio) {
+  const d = 30 - Math.round((new Date() - new Date(fechaEnvio + 'T00:00:00')) / 86400000);
+  return d > 0 ? `${d} días para decidir` : 'Vence hoy';
+}
+
+function accionesPropuesta(p) {
+  const b = (acc, txt, cls = 'sec') => `<button class="btn ${cls} mini" data-acc="${acc}" data-id="${p.id}">${txt}</button>`;
+  if (p.estado === 'borrador') return b('enviar', 'Marcar enviada');
+  if (p.estado === 'en_espera') return b('despego', '✓ Despegó', 'ok') + b('no', 'No despegó');
+  if (p.estado === 'despego') return b('ver', 'Ver encargo');
+  return b('reabrir', 'Reabrir');
+}
+
+async function modalPropuesta() {
+  const [svc, cli] = await Promise.all([D.servicios(), D.clientes()]);
+  const codigo = await D.siguienteCodigo();
+  const op = l => l.map(x => `<option value="${x.id}">${esc(x.nombre)}</option>`).join('');
+  const fondo = document.createElement('div');
+  fondo.className = 'modal-fondo';
+  fondo.innerHTML = `<form class="modal" id="fp">
+    <h2>Nueva propuesta preliminar</h2>
+    <p class="sub">Si despega, se vuelve encargo con el mismo código y el nombre "${esc(codigo.slice(6, 8))}  I  NOMBRE".</p>
+    <div class="grilla-form">
+      <div><label>Código</label><input name="codigo" value="${esc(codigo)}" required></div>
+      <div><label>Nombre (en mayúsculas)</label><input name="nombre" placeholder="CEREZO 44" required style="text-transform:uppercase"></div>
+      <div><label>Cliente</label><select name="cliente_id"><option value="">— Elegir —</option>${op(cli)}<option value="__nuevo">+ Nuevo cliente…</option></select></div>
+      <div><label>Servicio</label><select name="servicio_id">${op(svc)}</select></div>
+      <div><label>Tipo</label><select name="tipo">${Object.entries(TIPOS).map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}</select></div>
+      <div><label>Honorarios (COP)</label><input name="honorarios" inputmode="numeric" placeholder="8.200.000"></div>
+    </div>
+    <div class="aviso" id="aviso"></div>
+    <div class="pie-modal"><button type="button" class="btn sec" id="cancelar">Cancelar</button><button class="btn" type="submit">Crear propuesta</button></div>
+  </form>`;
+  document.body.appendChild(fondo);
+  const f = $('#fp', fondo);
+  $('#cancelar', fondo).onclick = () => fondo.remove();
+  f.honorarios.oninput = () => { const n = f.honorarios.value.replace(/\D/g, ''); f.honorarios.value = n ? Number(n).toLocaleString('es-CO').replace(/,/g, '.') : ''; };
+  f.cliente_id.onchange = async () => {
+    if (f.cliente_id.value !== '__nuevo') return;
+    const nombre = prompt('Nombre o razón social del cliente');
+    if (!nombre) { f.cliente_id.value = ''; return; }
+    const c = await D.crearCliente({ tipo: 'empresa', nombre: nombre.trim().toUpperCase() });
+    f.cliente_id.insertAdjacentHTML('afterbegin', `<option value="${c.id}">${esc(c.nombre)}</option>`);
+    f.cliente_id.value = c.id;
+  };
+  f.onsubmit = async ev => {
+    ev.preventDefault();
+    const v = Object.fromEntries(new FormData(f));
+    v.nombre = v.nombre.trim().toUpperCase().replace(/^\d{2}\s+I\s+/, '');
+    v.honorarios = v.honorarios ? Number(v.honorarios.replace(/\D/g, '')) : null;
+    if (!v.cliente_id) v.cliente_id = null;
+    try { await D.crearPropuesta(v); fondo.remove(); ir(); }
+    catch (err) { $('#aviso', fondo).textContent = err.message; }
+  };
 }
