@@ -329,7 +329,6 @@ async function vistaExpediente(s, codigo, seccion) {
 
 function moduloAplica(k, tipo) {
   if (tipo === 'diseno') return k !== 'presupuesto';
-  if (tipo === 'obra') return !['brief', 'propuesta'].includes(k);
   return true;
 }
 
