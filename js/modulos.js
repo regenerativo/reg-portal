@@ -49,13 +49,13 @@ function barraDoc(ctx, d, tipo) {
   const b = [];
   if (ctx.admin && d.estado === 'borrador') b.push(`<button class="btn sec mini" data-doc="enviar">Marcar enviado</button>`);
   if (ctx.admin && tipo === 'contrato' && d.estado !== 'firmado') b.push(`<button class="btn sec mini" data-doc="firmar">Marcar firmado</button>`);
-  if (d.estado === 'enviado' && (ctx.esCliente || ctx.admin) && tipo !== 'informe') b.push(`<button class="btn ok mini" data-doc="aprobar">✓ Aprobar</button>`);
+  if (d.estado === 'enviado' && ctx.admin && tipo !== 'informe') b.push(`<button class="btn ok mini" data-doc="aprobar">✓ Aprobar</button>`);
   b.push(`<button class="btn sec mini" data-doc="pdf">PDF</button>`);
   if (!ctx.esCliente) b.push(`<button class="btn sec mini" data-doc="word">Word</button>`);
   return `<div class="barra-doc">
     <div><span class="etiqueta ${d.estado}">${ESTADOS_DOC[d.estado]}</span>
       <span class="sub"> &nbsp;${esc(d.titulo || '')} · versión ${d.version} · ${fecha(d.fecha)}</span>
-      ${d.aprobado_por ? `<div class="sub">Aprobado por ${esc(d.aprobado_por)} (CC ${esc(d.aprobado_doc)}) el ${fecha(d.aprobado_en?.slice(0, 10))}</div>` : ''}</div>
+      ${d.aprobado_por ? `<div class="sub">Aprobado por ${esc(d.aprobado_por)} · ${esc(d.aprobado_doc)} · registrado el ${fecha(d.aprobado_en?.slice(0, 10))}</div>` : ''}</div>
     <div class="barra-acc">${b.join('')}</div></div>`;
 }
 
@@ -66,8 +66,8 @@ function montarBarra(ctx, d, tipo, cuerpoImpresion) {
       if (acc === 'enviar') { await D.actualizarDocumento(d.id, { estado: 'enviado' }); return ctx.recargar(); }
       if (acc === 'firmar') { await D.actualizarDocumento(d.id, { estado: 'firmado' }); return ctx.recargar(); }
       if (acc === 'aprobar') {
-        const nombre = prompt('Para aprobar, escribe tu nombre completo'); if (!nombre) return;
-        const cedula = prompt('Y tu número de cédula'); if (!cedula) return;
+        const nombre = prompt('¿Quién aprobó por parte del cliente? (nombre completo)'); if (!nombre) return;
+        const cedula = prompt('¿Cómo lo aprobó? (p. ej. correo del 10/11, firma, reunión)'); if (!cedula) return;
         await D.aprobarDocumento(d.id, nombre, cedula); return ctx.recargar();
       }
       const cuerpo = cuerpoImpresion();
