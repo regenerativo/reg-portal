@@ -1,4 +1,7 @@
 /* REG — Portal de encargos · estilos de regenerativo */
+@font-face{font-family:"Stolzl";src:url("../assets/fonts/stolzl-light.ttf") format("truetype");font-weight:300;font-display:swap}
+@font-face{font-family:"Stolzl";src:url("../assets/fonts/stolzl-book.ttf") format("truetype");font-weight:400;font-display:swap}
+@font-face{font-family:"Stolzl";src:url("../assets/fonts/stolzl-medium.ttf") format("truetype");font-weight:500;font-display:swap}
 :root{
   --negro:#1E221D; --gris:#999999; --gris-claro:#D9D9D9; --gris-fondo:#EDEDED;
   --crema:#F3EFE6; --petroleo:#00758F; --azul:#00A3CB; --lima:#DFDF3F;
@@ -20,15 +23,18 @@ button,input,select,textarea{font:inherit;color:inherit}
 .acceso{min-height:100vh;display:grid;place-items:center;padding:32px;background:var(--crema)}
 .acceso-caja{width:100%;max-width:380px;background:var(--blanco);padding:40px 32px;border-radius:14px}
 .acceso-caja img{width:44px;display:block;margin-bottom:28px}
-.acceso-caja h1{font-size:22px;margin-bottom:6px}
+.acceso-caja h1{font-size:24px;font-weight:300;margin-bottom:18px}
 .acceso-caja p{color:var(--gris);margin:0 0 24px}
 .pestanas{display:flex;gap:4px;background:var(--gris-fondo);border-radius:999px;padding:4px;margin:4px 0 6px}
 .pestanas button{flex:1;border:0;background:none;padding:8px 10px;border-radius:999px;cursor:pointer;font-size:13px;color:var(--gris)}
 .pestanas button.activa{background:var(--blanco);color:var(--negro)}
-.firma{font-family:var(--t-titulo);font-size:13px;color:var(--gris);margin-top:28px}
+.firma{font-family:var(--t-titulo);font-size:14px;color:var(--negro);margin-top:30px;display:flex;align-items:baseline;gap:6px;white-space:nowrap}
+.firma .por{font-weight:300}
+.firma .linea{display:inline-block;width:1.7em;border-bottom:1.5px solid currentColor;transform:translateY(-1px)}
+.firma .reg{font-weight:500}
 
 /* ---------- Formularios ---------- */
-label{display:block;font-size:12px;color:var(--gris);margin:14px 0 4px;text-transform:uppercase;letter-spacing:.06em}
+label{display:block;font-size:11px;color:var(--gris);margin:14px 0 4px;text-transform:uppercase;letter-spacing:.06em}
 input,select,textarea{width:100%;padding:10px 12px;border:1px solid var(--gris-claro);border-radius:8px;background:var(--blanco)}
 input:focus,select:focus,textarea:focus{outline:none;border-color:var(--petroleo)}
 .btn{display:inline-flex;align-items:center;gap:8px;padding:9px 16px;border-radius:999px;border:1px solid var(--negro);background:var(--negro);color:var(--blanco);cursor:pointer;font-size:14px;text-decoration:none;white-space:nowrap}
@@ -42,8 +48,8 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--petroleo
 .lado{background:var(--crema);padding:24px 16px;display:flex;flex-direction:column;gap:4px;position:sticky;top:0;height:100vh;overflow:auto}
 .marca{display:flex;align-items:center;gap:10px;padding:0 8px 22px}
 .marca img{width:28px}
-.marca span{font-family:var(--t-titulo);font-size:17px}
-.lado .grupo{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--gris);padding:18px 10px 6px}
+.marca span{font-family:var(--t-titulo);font-size:18px;font-weight:500}
+.lado .grupo{font-family:var(--t-titulo);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--gris);padding:18px 10px 6px}
 .lado a{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border-radius:8px;text-decoration:none;font-size:14px}
 .lado a:hover{background:rgba(30,34,29,.06)}
 .lado a.activo{background:var(--blanco);color:var(--petroleo)}
@@ -54,7 +60,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--petroleo
 .main{min-width:0;display:flex;flex-direction:column}
 .cabeza{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:22px 36px;border-bottom:1px dotted var(--gris-claro);flex-wrap:wrap}
 .cabeza .ruta{font-size:12px;color:var(--gris);margin-bottom:4px}
-.cabeza h1{font-size:24px}
+.cabeza h1{font-size:26px;font-weight:300}
 .cabeza .acciones{display:flex;gap:8px;flex-wrap:wrap}
 .cont{padding:28px 36px 60px;max-width:1280px;width:100%}
 .menu-movil{display:none;background:none;border:1px solid var(--gris-claro);border-radius:8px;padding:6px 10px;cursor:pointer}
@@ -62,8 +68,8 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--petroleo
 /* ---------- Tarjetas KPI ---------- */
 .kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:28px}
 .kpi{border:1px solid var(--gris-claro);border-radius:12px;padding:18px}
-.kpi .et{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--gris)}
-.kpi .va{font-family:var(--t-titulo);font-size:26px;margin-top:8px}
+.kpi .et{font-size:11px;font-family:var(--t-titulo);letter-spacing:.08em;text-transform:uppercase;color:var(--gris)}
+.kpi .va{font-family:var(--t-titulo);font-size:28px;font-weight:300;margin-top:8px}
 .kpi .su{font-size:12px;color:var(--gris);margin-top:2px}
 .barra{height:6px;background:var(--gris-fondo);border-radius:99px;margin-top:10px;overflow:hidden}
 .barra i{display:block;height:100%;background:var(--petroleo);border-radius:99px}
@@ -71,7 +77,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--petroleo
 /* ---------- Tablas regenerativo: encabezado gris, líneas punteadas ---------- */
 .tabla-cont{overflow-x:auto;border:1px dotted var(--gris);border-radius:10px}
 table{width:100%;border-collapse:collapse;font-size:14px}
-th{background:var(--gris-claro);color:var(--negro);font-weight:600;text-align:left;padding:10px 12px;font-size:12px;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap}
+th{background:var(--gris-claro);color:var(--negro);font-family:var(--t-titulo);font-weight:500;text-align:left;padding:10px 12px;font-size:11px;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap}
 td{padding:11px 12px;border-top:1px dotted var(--gris);vertical-align:middle}
 tr.clic{cursor:pointer}
 tr.clic:hover td{background:#FAF8F3}
@@ -86,7 +92,7 @@ td.num,th.num{text-align:right;white-space:nowrap}
 /* ---------- Bloques ---------- */
 .dos{display:grid;grid-template-columns:1.2fr 1fr;gap:20px}
 .panel{border:1px solid var(--gris-claro);border-radius:12px;padding:20px}
-.panel h3{font-size:16px;margin-bottom:14px}
+.panel h3{font-size:17px;font-weight:400;margin-bottom:14px}
 .datos{display:grid;grid-template-columns:150px 1fr;gap:8px 16px;font-size:14px}
 .datos dt{color:var(--gris)}
 .datos dd{margin:0}

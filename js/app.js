@@ -29,7 +29,8 @@ async function ir() {
 
 async function irSeguro() {
   const enlace = await D.procesarEnlace();
-  if (enlace) return vistaNuevaClave(enlace);
+  if (enlace && (enlace.error || enlace.tipo === 'invite' || enlace.tipo === 'recovery')) return vistaNuevaClave(enlace);
+  if (enlace) { history.replaceState(null, '', location.pathname + '#/'); }
   const ruta = location.hash.replace(/^#/, '') || '/';
   const s = await D.sesion();
   if (s) s.admin = await D.esAdmin();
@@ -101,7 +102,7 @@ function vistaAcceso() {
       <div class="aviso" id="aviso"></div>
       ${cli ? '<p class="sub" style="margin:18px 0 0">¿No tienes la contraseña? Pídela a regenerativo.</p>'
             : '<p style="margin:18px 0 0;font-size:13px"><a href="#/recuperar">Olvidé mi contraseña</a></p>'}
-      <div class="firma">Por ＿ regenerativo</div>
+      <div class="firma"><span class="por">Por</span><span class="linea"></span><span class="reg">regenerativo</span></div>
     </form></div>`;
     document.querySelectorAll('.pestanas button').forEach(b => b.onclick = () => {
       modo = b.dataset.m; try { sessionStorage.setItem('reg-modo-acceso', modo); } catch (e) {} pintar();
