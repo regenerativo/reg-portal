@@ -1,0 +1,185 @@
+// Capa de datos: Supabase cuando está configurado; si no, modo demostración (localStorage).
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js';
+
+export const MODO_DEMO = !SUPABASE_URL || !SUPABASE_ANON_KEY;
+let sb = null;
+
+async function cliente() {
+  if (!sb) {
+    const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2');
+    sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  }
+  return sb;
+}
+
+// ---------------- Datos de ejemplo ----------------
+const FESTIVOS_CO = [
+  ['2026-01-01','Año Nuevo'],['2026-01-12','Reyes Magos'],['2026-03-23','San José'],['2026-04-02','Jueves Santo'],
+  ['2026-04-03','Viernes Santo'],['2026-05-01','Día del Trabajo'],['2026-05-18','Ascensión del Señor'],['2026-06-08','Corpus Christi'],
+  ['2026-06-15','Sagrado Corazón'],['2026-06-29','San Pedro y San Pablo'],['2026-07-20','Independencia'],['2026-08-07','Batalla de Boyacá'],
+  ['2026-08-17','Asunción de la Virgen'],['2026-10-12','Día de la Raza'],['2026-11-02','Todos los Santos'],['2026-11-16','Independencia de Cartagena'],
+  ['2026-12-08','Inmaculada Concepción'],['2026-12-25','Navidad'],
+  ['2027-01-01','Año Nuevo'],['2027-01-11','Reyes Magos'],['2027-03-22','San José'],['2027-03-25','Jueves Santo'],
+  ['2027-03-26','Viernes Santo'],['2027-05-01','Día del Trabajo'],['2027-05-10','Ascensión del Señor'],['2027-05-31','Corpus Christi'],
+  ['2027-06-07','Sagrado Corazón'],['2027-07-05','San Pedro y San Pablo'],['2027-07-20','Independencia'],['2027-08-07','Batalla de Boyacá'],
+  ['2027-08-16','Asunción de la Virgen'],['2027-10-18','Día de la Raza'],['2027-11-01','Todos los Santos'],['2027-11-15','Independencia de Cartagena'],
+  ['2027-12-08','Inmaculada Concepción'],['2027-12-25','Navidad'],
+].map(([fecha, nombre]) => ({ fecha, nombre }));
+
+const SEMILLA = {
+  servicios: [
+    { id: 's1', nombre: 'Arquitectura', orden: 1 },
+    { id: 's2', nombre: 'Diseño de Espacios', orden: 2 },
+    { id: 's3', nombre: 'Muebles y Objetos', orden: 3 },
+    { id: 's4', nombre: 'Conceptualización de Proyectos', orden: 4 },
+  ],
+  clientes: [
+    { id: 'c1', tipo: 'empresa', nombre: 'GRUPO TREVENER SAS', documento: 'NIT XXX', representante: '' },
+    { id: 'c2', tipo: 'persona', nombre: 'XXX', documento: '', representante: '' },
+  ],
+  encargos: [
+    { id: 'e1', codigo: 'SCREG_26015', nombre: '26 I CEREZO 44', cliente_id: 'c2', servicio_id: 's2', tipo: 'obra',
+      direccion: 'XXX', ciudad: 'Bogotá', area_m2: null, inicio: '2026-11-10', fin: '2026-12-10',
+      dias_trabajo: 'lv', fecha_corte: null, estado: 'activo' },
+    { id: 'e2', codigo: 'SCREG_26012', nombre: '26 I REFORMA I 102', cliente_id: 'c1', servicio_id: 's2', tipo: 'diseno',
+      direccion: 'XXX', ciudad: 'Bogotá', area_m2: null, inicio: '2026-07-30', fin: '2026-12-18',
+      dias_trabajo: 'lv', fecha_corte: null, estado: 'activo' },
+  ],
+  responsables: [],
+  festivos: FESTIVOS_CO,
+};
+
+const CLAVE = 'reg-portal-demo-v1';
+function leer() {
+  try { const d = JSON.parse(localStorage.getItem(CLAVE)); if (d && d.encargos) return d; } catch (e) {}
+  return structuredClone(SEMILLA);
+}
+function guardar(d) { try { localStorage.setItem(CLAVE, JSON.stringify(d)); } catch (e) {} }
+const nuevoId = () => Math.random().toString(36).slice(2, 10);
+
+// ---------------- Sesión ----------------
+export async function sesion() {
+  if (MODO_DEMO) {
+    try { return JSON.parse(sessionStorage.getItem('reg-demo-sesion')); } catch (e) { return null; }
+  }
+  const { data } = await (await cliente()).auth.getSession();
+  return data.session ? { email: data.session.user.email, id: data.session.user.id } : null;
+}
+
+export async function ingresar(email, clave) {
+  if (MODO_DEMO) {
+    const s = { email, id: 'demo', admin: true };
+    try { sessionStorage.setItem('reg-demo-sesion', JSON.stringify(s)); } catch (e) {}
+    return s;
+  }
+  const { data, error } = await (await cliente()).auth.signInWithPassword({ email, password: clave });
+  if (error) throw new Error('Correo o contraseña incorrectos.');
+  return { email: data.user.email, id: data.user.id };
+}
+
+export async function salir() {
+  if (MODO_DEMO) { try { sessionStorage.removeItem('reg-demo-sesion'); } catch (e) {} return; }
+  await (await cliente()).auth.signOut();
+}
+
+export async function recuperarClave(email) {
+  if (MODO_DEMO) return;
+  const { error } = await (await cliente()).auth.resetPasswordForEmail(email, { redirectTo: location.origin + location.pathname + '#/nueva-clave' });
+  if (error) throw error;
+}
+
+export async function esAdmin() {
+  if (MODO_DEMO) return true;
+  const { data } = await (await cliente()).rpc('es_admin');
+  return !!data;
+}
+
+// ---------------- Catálogos ----------------
+export async function servicios() {
+  if (MODO_DEMO) return leer().servicios;
+  const { data, error } = await (await cliente()).from('servicios').select('*').eq('activo', true).order('orden');
+  if (error) throw error; return data;
+}
+export async function clientes() {
+  if (MODO_DEMO) return leer().clientes;
+  const { data, error } = await (await cliente()).from('clientes').select('*').order('nombre');
+  if (error) throw error; return data;
+}
+export async function festivos() {
+  if (MODO_DEMO) return leer().festivos;
+  const { data, error } = await (await cliente()).from('festivos').select('fecha,nombre').order('fecha');
+  if (error) throw error; return data;
+}
+export async function crearCliente(c) {
+  if (MODO_DEMO) { const d = leer(); const n = { ...c, id: nuevoId() }; d.clientes.push(n); guardar(d); return n; }
+  const { data, error } = await (await cliente()).from('clientes').insert(c).select().single();
+  if (error) throw error; return data;
+}
+
+// ---------------- Encargos ----------------
+export async function encargos() {
+  if (MODO_DEMO) {
+    const d = leer();
+    return d.encargos.map(e => ({ ...e,
+      cliente: d.clientes.find(c => c.id === e.cliente_id) || null,
+      servicio: d.servicios.find(s => s.id === e.servicio_id) || null }));
+  }
+  const { data, error } = await (await cliente()).from('encargos')
+    .select('*, cliente:clientes(*), servicio:servicios(*)').order('codigo', { ascending: false });
+  if (error) throw error; return data;
+}
+
+export async function encargo(codigo) {
+  const lista = await encargos();
+  const e = lista.find(x => x.codigo === codigo);
+  if (!e) return null;
+  if (MODO_DEMO) { e.responsables = leer().responsables.filter(r => r.encargo_id === e.id).sort((a, b) => a.numero - b.numero); return e; }
+  const { data } = await (await cliente()).from('encargo_responsables').select('*').eq('encargo_id', e.id).order('numero');
+  e.responsables = data || [];
+  return e;
+}
+
+/** Siguiente código SCREG_aaNNN según los existentes del año. */
+export async function siguienteCodigo(anio = new Date().getFullYear()) {
+  const aa = String(anio).slice(2);
+  const nums = (await encargos()).map(e => (new RegExp(`^SCREG_${aa}(\\d{3})$`).exec(e.codigo) || [])[1]).filter(Boolean).map(Number);
+  const n = (nums.length ? Math.max(...nums) : 0) + 1;
+  return `SCREG_${aa}${String(n).padStart(3, '0')}`;
+}
+
+export async function crearEncargo(e) {
+  if (MODO_DEMO) {
+    const d = leer();
+    if (d.encargos.some(x => x.codigo === e.codigo)) throw new Error('Ya existe un encargo con ese código.');
+    const n = { ...e, id: nuevoId() }; d.encargos.push(n); guardar(d); return n;
+  }
+  const { data, error } = await (await cliente()).from('encargos').insert(e).select().single();
+  if (error) throw new Error(error.message.includes('duplicate') ? 'Ya existe un encargo con ese código.' : error.message);
+  return data;
+}
+
+export async function actualizarEncargo(id, cambios) {
+  if (MODO_DEMO) { const d = leer(); const e = d.encargos.find(x => x.id === id); Object.assign(e, cambios); guardar(d); return e; }
+  const { data, error } = await (await cliente()).from('encargos').update(cambios).eq('id', id).select().single();
+  if (error) throw error; return data;
+}
+
+export async function guardarResponsables(encargoId, lista) {
+  if (MODO_DEMO) {
+    const d = leer();
+    d.responsables = d.responsables.filter(r => r.encargo_id !== encargoId)
+      .concat(lista.map((r, i) => ({ ...r, id: r.id || nuevoId(), encargo_id: encargoId, numero: i + 1 })));
+    guardar(d); return;
+  }
+  const c = await cliente();
+  const { error } = await c.rpc('guardar_responsables', { p_encargo: encargoId, p_lista: lista.map((r, i) => ({ ...r, numero: i + 1 })) });
+  if (error) throw error;
+}
+
+export async function invitar(email, encargoId, rol) {
+  if (MODO_DEMO) throw new Error('Las invitaciones se activan cuando el portal esté conectado a la base de datos.');
+  const { error } = await (await cliente()).functions.invoke('invitar', { body: { email, encargo_id: encargoId, rol } });
+  if (error) throw error;
+}
+
+export function reiniciarDemo() { try { localStorage.removeItem(CLAVE); } catch (e) {} }

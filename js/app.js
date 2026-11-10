@@ -1,0 +1,361 @@
+import * as D from './datos.js';
+import { cop, fecha, pct, diasDeTrabajo, fechaCorte, DIAS_TRABAJO, TIPOS, ESTADOS_ENCARGO } from './formato.js';
+
+const $ = (s, r = document) => r.querySelector(s);
+const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const xxx = v => (v === null || v === undefined || v === '' || v === 'XXX') ? '<span class="xxx">XXX</span>' : esc(v);
+const raiz = $('#raiz');
+
+const MODULOS = [
+  ['resumen', 'Resumen', true],
+  ['brief', 'Brief'], ['propuesta', 'Propuesta económica'], ['contrato', 'Contrato'], ['adendas', 'Adendas'],
+  ['presupuesto', 'Presupuesto'], ['gantt', 'Gantt'], ['informes', 'Informes'],
+  ['ajustes', 'Ajustes del encargo', true],
+];
+const FASE = { brief: 2, propuesta: 2, contrato: 3, adendas: 3, presupuesto: 4, gantt: 5, informes: 5 };
+
+// ---------------- Router ----------------
+window.addEventListener('hashchange', ir);
+ir();
+
+async function ir() {
+  const ruta = location.hash.replace(/^#/, '') || '/';
+  const s = await D.sesion();
+  if (!s && ruta !== '/acceso' && ruta !== '/recuperar') { location.hash = '#/acceso'; return; }
+  if (ruta === '/acceso') return vistaAcceso();
+  if (ruta === '/recuperar') return vistaRecuperar();
+  const p = ruta.split('/').filter(Boolean);
+  try {
+    if (p.length === 0) return await vistaEncargos(s);
+    if (p[0] === 'encargos' && p[1]) return await vistaExpediente(s, decodeURIComponent(p[1]), p[2] || 'resumen');
+    if (p[0] === 'ajustes') return await vistaAjustes(s);
+    return marco(s, { titulo: 'Página no encontrada', html: `<div class="vacio">Esta página no existe. <a href="#/">Volver a los encargos</a></div>` });
+  } catch (err) {
+    console.error(err);
+    marco(s, { titulo: 'Algo salió mal', html: `<div class="vacio">${esc(err.message || err)}<br><br><a href="#/">Volver a los encargos</a></div>` });
+  }
+}
+
+// ---------------- Marco general ----------------
+function marco(s, { titulo, ruta = '', acciones = '', html, menu = null, activo = '' }) {
+  const enlacesGen = `
+    <div class="grupo">Portal</div>
+    <a href="#/" class="${activo === 'encargos' ? 'activo' : ''}">Encargos</a>
+    <a href="#/ajustes" class="${activo === 'ajustes' ? 'activo' : ''}">Ajustes generales</a>`;
+  raiz.innerHTML = `
+  <div class="app">
+    <nav class="lado" id="lado">
+      <div class="marca"><img src="assets/isotipo.png" alt=""><span>regenerativo</span></div>
+      ${menu || ''}
+      ${enlacesGen}
+      <div class="pie">${esc(s.email)}<br><button id="salir">Cerrar sesión</button></div>
+    </nav>
+    <div class="main">
+      ${D.MODO_DEMO ? '<div class="demo">Modo demostración: los datos son de ejemplo y se guardan solo en este navegador.</div>' : ''}
+      <header class="cabeza">
+        <div style="display:flex;gap:12px;align-items:center;min-width:0">
+          <button class="menu-movil" id="abrir-menu" aria-label="Menú">☰</button>
+          <div style="min-width:0"><div class="ruta">${ruta}</div><h1>${titulo}</h1></div>
+        </div>
+        <div class="acciones">${acciones}</div>
+      </header>
+      <main class="cont">${html}</main>
+    </div>
+  </div>`;
+  $('#salir').onclick = async () => { await D.salir(); location.hash = '#/acceso'; };
+  $('#abrir-menu').onclick = e => { e.stopPropagation(); $('#lado').classList.toggle('abierto'); };
+  document.body.onclick = e => { const l = $('#lado'); if (l && l.classList.contains('abierto') && !l.contains(e.target)) l.classList.remove('abierto'); };
+}
+
+// ---------------- Acceso ----------------
+function vistaAcceso() {
+  raiz.innerHTML = `
+  <div class="acceso"><form class="acceso-caja" id="f">
+    <img src="assets/isotipo.png" alt="regenerativo">
+    <h1>Portal de encargos</h1>
+    <p>Ingresa con el correo al que te llegó la invitación.</p>
+    <label for="email">Correo</label><input id="email" type="email" autocomplete="username" required>
+    <label for="clave">Contraseña</label><input id="clave" type="password" autocomplete="current-password" ${D.MODO_DEMO ? '' : 'required'}>
+    <button class="btn full" type="submit">Ingresar</button>
+    <div class="aviso" id="aviso"></div>
+    <p style="margin:18px 0 0;font-size:13px"><a href="#/recuperar">Olvidé mi contraseña</a></p>
+    <div class="firma">Por ＿ regenerativo</div>
+  </form></div>`;
+  $('#f').onsubmit = async e => {
+    e.preventDefault();
+    try { await D.ingresar($('#email').value.trim(), $('#clave').value); location.hash = '#/'; }
+    catch (err) { $('#aviso').textContent = err.message; }
+  };
+}
+
+function vistaRecuperar() {
+  raiz.innerHTML = `
+  <div class="acceso"><form class="acceso-caja" id="f">
+    <img src="assets/isotipo.png" alt="regenerativo">
+    <h1>Recuperar contraseña</h1>
+    <p>Te enviaremos un enlace para crear una nueva.</p>
+    <label for="email">Correo</label><input id="email" type="email" required>
+    <button class="btn full" type="submit">Enviar enlace</button>
+    <div class="aviso" id="aviso"></div>
+    <p style="margin:18px 0 0;font-size:13px"><a href="#/acceso">Volver al ingreso</a></p>
+  </form></div>`;
+  $('#f').onsubmit = async e => {
+    e.preventDefault();
+    try { await D.recuperarClave($('#email').value.trim()); $('#aviso').style.color = 'var(--petroleo)'; $('#aviso').textContent = 'Si el correo está registrado, te llegará el enlace.'; }
+    catch (err) { $('#aviso').textContent = err.message; }
+  };
+}
+
+// ---------------- Lista de encargos ----------------
+async function vistaEncargos(s) {
+  const lista = await D.encargos();
+  const admin = await D.esAdmin();
+  const fest = new Set((await D.festivos()).map(f => f.fecha));
+  const conTiempo = lista.map(e => ({ ...e, tiempo: tiempoTranscurrido(e, fest) }));
+  const activos = conTiempo.filter(e => e.estado === 'activo');
+  const html = `
+    <div class="kpis">
+      ${kpi('Encargos activos', activos.length, `${lista.length} en total`)}
+      ${kpi('De obra', lista.filter(e => e.tipo !== 'diseno').length, 'Obra o diseño y obra')}
+      ${kpi('De diseño', lista.filter(e => e.tipo !== 'obra').length, 'Diseño o diseño y obra')}
+      ${kpi('Por terminar este mes', activos.filter(e => e.fin && e.fin.slice(0, 7) === new Date().toISOString().slice(0, 7)).length, 'Fecha de fin en el mes')}
+    </div>
+    <div class="filtros">
+      <input id="buscar" placeholder="Buscar por nombre, código o cliente">
+      <select id="festado"><option value="">Todos los estados</option>${Object.entries(ESTADOS_ENCARGO).map(([k, v]) => `<option value="${k}">${v}</option>`).join('')}</select>
+    </div>
+    <div id="tabla"></div>`;
+  marco(s, { titulo: 'Encargos', ruta: 'Portal', activo: 'encargos', html,
+    acciones: admin ? '<button class="btn" id="nuevo">+ Nuevo encargo</button>' : '' });
+  const pintar = () => {
+    const q = $('#buscar').value.toLowerCase(), est = $('#festado').value;
+    const f = conTiempo.filter(e => (!est || e.estado === est) &&
+      (!q || [e.nombre, e.codigo, e.cliente?.nombre].join(' ').toLowerCase().includes(q)));
+    $('#tabla').innerHTML = f.length ? `
+      <div class="tabla-cont"><table>
+        <thead><tr><th class="col-opc">Código</th><th>Encargo</th><th class="col-opc">Cliente</th><th class="col-opc">Tipo</th><th class="col-opc">Inicio</th><th class="col-opc">Fin</th><th>Tiempo</th><th>Estado</th></tr></thead>
+        <tbody>${f.map(e => `
+          <tr class="clic" data-c="${esc(e.codigo)}">
+            <td class="sub col-opc">${esc(e.codigo)}</td>
+            <td><b>${esc(e.nombre)}</b><div class="sub">${esc(e.servicio?.nombre || '')}<span class="solo-movil"> · ${esc(e.codigo)}</span></div></td>
+            <td class="col-opc">${xxx(e.cliente?.nombre)}</td>
+            <td class="col-opc">${TIPOS[e.tipo] || ''}</td>
+            <td class="col-opc">${fecha(e.inicio)}</td><td class="col-opc">${fecha(e.fin)}</td>
+            <td style="min-width:90px">${pct(e.tiempo)}<div class="barra"><i style="width:${Math.round((e.tiempo || 0) * 100)}%"></i></div></td>
+            <td><span class="etiqueta ${e.estado}">${ESTADOS_ENCARGO[e.estado] || e.estado}</span></td>
+          </tr>`).join('')}</tbody></table></div>`
+      : `<div class="vacio">${lista.length ? 'Ningún encargo coincide con la búsqueda.' : 'Todavía no hay encargos.'}</div>`;
+    document.querySelectorAll('tr.clic').forEach(tr => tr.onclick = () => location.hash = `#/encargos/${encodeURIComponent(tr.dataset.c)}`);
+  };
+  $('#buscar').oninput = pintar; $('#festado').onchange = pintar; pintar();
+  if (admin) $('#nuevo').onclick = () => modalEncargo();
+}
+
+function kpi(et, va, su, barra) {
+  return `<div class="kpi"><div class="et">${et}</div><div class="va">${va}</div><div class="su">${su || ''}</div>${barra !== undefined ? `<div class="barra"><i style="width:${Math.round(barra * 100)}%"></i></div>` : ''}</div>`;
+}
+
+function tiempoTranscurrido(e, fest) {
+  if (!e.inicio || !e.fin) return null;
+  const total = diasDeTrabajo(e.inicio, e.fin, e.dias_trabajo, fest);
+  if (!total) return null;
+  const corte = fechaCorte(e.fecha_corte);
+  const fin = new Date(Math.min(corte, new Date(e.fin + 'T00:00:00')));
+  return Math.min(1, Math.max(0, diasDeTrabajo(e.inicio, fin, e.dias_trabajo, fest) / total));
+}
+
+// ---------------- Formulario de encargo ----------------
+async function modalEncargo(e = null) {
+  const [svc, cli] = await Promise.all([D.servicios(), D.clientes()]);
+  const codigo = e?.codigo || await D.siguienteCodigo();
+  const op = (lista, sel) => lista.map(x => `<option value="${x.id}" ${x.id === sel ? 'selected' : ''}>${esc(x.nombre)}</option>`).join('');
+  const opMap = (m, sel) => Object.entries(m).map(([k, v]) => `<option value="${k}" ${k === sel ? 'selected' : ''}>${v}</option>`).join('');
+  const fondo = document.createElement('div');
+  fondo.className = 'modal-fondo';
+  fondo.innerHTML = `<form class="modal" id="fe">
+    <h2>${e ? 'Datos generales del encargo' : 'Nuevo encargo'}</h2>
+    <p class="sub">Se escriben una sola vez y se usan en todos los documentos del encargo.</p>
+    <div class="grilla-form">
+      <div><label>Código</label><input name="codigo" value="${esc(codigo)}" required ${e ? 'readonly' : ''}></div>
+      <div><label>Nombre del encargo</label><input name="nombre" value="${esc(e?.nombre || '')}" placeholder="26 I CEREZO 44" required></div>
+      <div><label>Cliente</label><select name="cliente_id"><option value="">— Elegir —</option>${op(cli, e?.cliente_id)}<option value="__nuevo">+ Nuevo cliente…</option></select></div>
+      <div><label>Servicio</label><select name="servicio_id">${op(svc, e?.servicio_id)}</select></div>
+      <div><label>Tipo</label><select name="tipo">${opMap(TIPOS, e?.tipo || 'diseno')}</select></div>
+      <div><label>Estado</label><select name="estado">${opMap(ESTADOS_ENCARGO, e?.estado || 'activo')}</select></div>
+      <div class="ancho"><label>Dirección</label><input name="direccion" value="${esc(e?.direccion || '')}"></div>
+      <div><label>Ciudad</label><input name="ciudad" value="${esc(e?.ciudad || 'Bogotá')}"></div>
+      <div><label>Área m²</label><input name="area_m2" type="number" step="0.01" value="${e?.area_m2 ?? ''}"></div>
+      <div><label>Inicio</label><input name="inicio" type="date" value="${e?.inicio || ''}"></div>
+      <div><label>Fin</label><input name="fin" type="date" value="${e?.fin || ''}"></div>
+      <div><label>Días de trabajo</label><select name="dias_trabajo">${opMap(DIAS_TRABAJO, e?.dias_trabajo || 'lv')}</select></div>
+      <div><label>Fecha de corte (vacía = hoy)</label><input name="fecha_corte" type="date" value="${e?.fecha_corte || ''}"></div>
+    </div>
+    <div class="aviso" id="aviso"></div>
+    <div class="pie-modal"><button type="button" class="btn sec" id="cancelar">Cancelar</button><button class="btn" type="submit">Guardar</button></div>
+  </form>`;
+  document.body.appendChild(fondo);
+  const f = $('#fe', fondo);
+  $('#cancelar', fondo).onclick = () => fondo.remove();
+  f.cliente_id.onchange = async () => {
+    if (f.cliente_id.value !== '__nuevo') return;
+    const nombre = prompt('Nombre o razón social del cliente');
+    if (!nombre) { f.cliente_id.value = ''; return; }
+    const c = await D.crearCliente({ tipo: 'empresa', nombre: nombre.trim() });
+    f.cliente_id.insertAdjacentHTML('afterbegin', `<option value="${c.id}">${esc(c.nombre)}</option>`);
+    f.cliente_id.value = c.id;
+  };
+  f.onsubmit = async ev => {
+    ev.preventDefault();
+    const v = Object.fromEntries(new FormData(f));
+    for (const k of ['area_m2', 'inicio', 'fin', 'fecha_corte', 'cliente_id']) if (v[k] === '') v[k] = null;
+    if (v.area_m2 !== null) v.area_m2 = Number(v.area_m2);
+    if (v.inicio && v.fin && v.fin < v.inicio) { $('#aviso', fondo).textContent = 'La fecha de fin no puede ser anterior al inicio.'; return; }
+    try {
+      if (e) { delete v.codigo; await D.actualizarEncargo(e.id, v); }
+      else await D.crearEncargo(v);
+      fondo.remove();
+      location.hash = `#/encargos/${encodeURIComponent(e?.codigo || v.codigo)}`;
+      ir();
+    } catch (err) { $('#aviso', fondo).textContent = err.message; }
+  };
+}
+
+// ---------------- Expediente ----------------
+async function vistaExpediente(s, codigo, seccion) {
+  const e = await D.encargo(codigo);
+  if (!e) return marco(s, { titulo: 'Encargo no encontrado', html: `<div class="vacio">No existe el encargo ${esc(codigo)} o no tienes acceso. <a href="#/">Volver a los encargos</a></div>` });
+  const admin = await D.esAdmin();
+  const base = `#/encargos/${encodeURIComponent(codigo)}`;
+  const visibles = MODULOS.filter(([k]) => moduloAplica(k, e.tipo) && (k !== 'ajustes' || admin));
+  const menu = `<div class="grupo">${esc(e.nombre)}</div>` + visibles.map(([k, n, listo]) =>
+    `<a href="${base}/${k}" class="${k === seccion ? 'activo' : ''}">${n}${listo ? '' : '<span class="pronto">Próximamente</span>'}</a>`).join('');
+  const nombreSec = (MODULOS.find(m => m[0] === seccion) || [, 'Resumen'])[1];
+  const comun = { s, menu, ruta: `Encargos / ${esc(e.codigo)}`, titulo: esc(e.nombre) };
+  const fest = new Set((await D.festivos()).map(f => f.fecha));
+
+  if (seccion === 'resumen') {
+    const t = tiempoTranscurrido(e, fest);
+    const total = e.inicio && e.fin ? diasDeTrabajo(e.inicio, e.fin, e.dias_trabajo, fest) : null;
+    const corte = fechaCorte(e.fecha_corte);
+    const hechos = e.inicio ? diasDeTrabajo(e.inicio, corte, e.dias_trabajo, fest) : 0;
+    const html = `
+      <div class="kpis">
+        ${kpi('Tiempo transcurrido', pct(t), `Corte al ${fecha(corte)}`, t || 0)}
+        ${kpi('Días de trabajo', total ?? '—', total ? `${Math.max(0, total - hechos)} restantes · ${DIAS_TRABAJO[e.dias_trabajo]}` : 'Faltan fechas')}
+        ${kpi('Avance real', '—', 'Se calcula desde el Gantt (fase 5)')}
+        ${kpi('Valor del contrato', '—', 'Desde la propuesta aprobada (fase 2)')}
+      </div>
+      <div class="dos">
+        <section class="panel">
+          <h3>Detalles técnicos del encargo</h3>
+          <dl class="datos">
+            <dt>Código</dt><dd class="det">${esc(e.codigo)}</dd>
+            <dt>Cliente</dt><dd class="det">${xxx(e.cliente?.nombre)}</dd>
+            <dt>Servicio</dt><dd class="det">${xxx(e.servicio?.nombre)}</dd>
+            <dt>Tipo</dt><dd class="det">${TIPOS[e.tipo] || ''}</dd>
+            <dt>Ubicación</dt><dd class="det">${xxx(e.direccion)}${e.ciudad ? ', ' + esc(e.ciudad) : ''}</dd>
+            <dt>Área</dt><dd class="det">${e.area_m2 ? esc(e.area_m2) + ' m²' : xxx('')}</dd>
+            <dt>Inicio · Fin</dt><dd class="det">${fecha(e.inicio)} · ${fecha(e.fin)}</dd>
+            <dt>Días de trabajo</dt><dd class="det">${DIAS_TRABAJO[e.dias_trabajo] || ''}</dd>
+            <dt>Responsables</dt><dd class="det">${e.responsables.length ? e.responsables.map(r => `${r.numero}. ${esc(r.nombre)}`).join('<br>') : xxx('')}</dd>
+          </dl>
+        </section>
+        <section class="panel">
+          <h3>Módulos</h3>
+          <div class="modulos">${visibles.filter(([k]) => FASE[k]).map(([k, n]) =>
+            `<a class="modulo" href="${base}/${k}"><b>${n}</b><span>Próximamente · fase ${FASE[k]}</span></a>`).join('')}</div>
+        </section>
+      </div>`;
+    return marco({ ...s }, { ...comun, html, acciones: admin ? `<a class="btn sec" href="${base}/ajustes">Editar datos</a>` : '' });
+  }
+
+  if (seccion === 'ajustes') {
+    if (!admin) { location.hash = base; return; }
+    const html = `
+      <div class="dos">
+        <section class="panel">
+          <h3>Datos generales</h3>
+          <p class="sub" style="margin-top:-6px">Nombre, cliente, fechas, días de trabajo y fecha de corte.</p>
+          <button class="btn sec" id="editar">Editar datos generales</button>
+        </section>
+        <section class="panel">
+          <h3>Responsables</h3>
+          <p class="sub" style="margin-top:-6px">El Gantt elige al responsable por su número; si cambias un nombre aquí, se actualiza en todo el encargo.</p>
+          <div class="tabla-cont"><table><thead><tr><th style="width:52px">N°</th><th>Nombre</th><th class="col-opc">Cargo</th><th style="width:40px"></th></tr></thead>
+          <tbody id="resp"></tbody></table></div>
+          <div style="display:flex;gap:8px;margin-top:12px"><button class="btn sec" id="agregar">+ Agregar responsable</button><button class="btn" id="guardar-resp">Guardar</button></div>
+          <div class="aviso" id="aviso-resp"></div>
+        </section>
+        <section class="panel">
+          <h3>Invitar personas</h3>
+          <p class="sub" style="margin-top:-6px">Equipo: edita avances y fechas reales. Cliente: solo lee, comenta y aprueba.</p>
+          <div class="grilla-form">
+            <div><label>Correo</label><input id="inv-email" type="email"></div>
+            <div><label>Rol</label><select id="inv-rol"><option value="cliente">Cliente</option><option value="equipo">Equipo</option></select></div>
+          </div>
+          <button class="btn" id="invitar" style="margin-top:14px">Enviar invitación</button>
+          <div class="aviso" id="aviso-inv"></div>
+        </section>
+      </div>`;
+    marco(s, { ...comun, html });
+    $('#editar').onclick = () => modalEncargo(e);
+    let resp = e.responsables.map(r => ({ ...r }));
+    const pintar = () => {
+      $('#resp').innerHTML = resp.length ? resp.map((r, i) => `<tr>
+        <td>${i + 1}</td>
+        <td><input data-i="${i}" data-k="nombre" value="${esc(r.nombre || '')}" placeholder="Nombre"></td>
+        <td class="col-opc"><input data-i="${i}" data-k="cargo" value="${esc(r.cargo || '')}" placeholder="Cargo"></td>
+        <td><button class="btn sec" data-quitar="${i}" title="Quitar" style="padding:6px 10px">×</button></td></tr>`).join('')
+        : `<tr><td colspan="4" class="sub">Sin responsables todavía.</td></tr>`;
+      document.querySelectorAll('#resp input').forEach(inp => inp.oninput = () => resp[inp.dataset.i][inp.dataset.k] = inp.value);
+      document.querySelectorAll('[data-quitar]').forEach(b => b.onclick = () => { resp.splice(+b.dataset.quitar, 1); pintar(); });
+    };
+    pintar();
+    $('#agregar').onclick = () => { resp.push({ nombre: '', cargo: '' }); pintar(); };
+    $('#guardar-resp').onclick = async () => {
+      try { await D.guardarResponsables(e.id, resp.filter(r => r.nombre.trim())); $('#aviso-resp').style.color = 'var(--petroleo)'; $('#aviso-resp').textContent = 'Responsables guardados.'; }
+      catch (err) { $('#aviso-resp').textContent = err.message; }
+    };
+    $('#invitar').onclick = async () => {
+      try { await D.invitar($('#inv-email').value.trim(), e.id, $('#inv-rol').value); $('#aviso-inv').style.color = 'var(--petroleo)'; $('#aviso-inv').textContent = 'Invitación enviada.'; }
+      catch (err) { $('#aviso-inv').style.color = ''; $('#aviso-inv').textContent = err.message; }
+    };
+    return;
+  }
+
+  // Módulos de fases siguientes
+  return marco(s, { ...comun, html: `<div class="vacio"><b>${nombreSec}</b><br>Este módulo llega en la fase ${FASE[seccion] || ''}.</div>` });
+}
+
+function moduloAplica(k, tipo) {
+  if (tipo === 'diseno') return k !== 'presupuesto';
+  if (tipo === 'obra') return !['brief', 'propuesta'].includes(k);
+  return true;
+}
+
+// ---------------- Ajustes generales ----------------
+async function vistaAjustes(s) {
+  const [svc, cli, fest] = await Promise.all([D.servicios(), D.clientes(), D.festivos()]);
+  const anio = String(new Date().getFullYear());
+  const html = `
+    <div class="dos">
+      <section class="panel"><h3>Clientes</h3>
+        <div class="tabla-cont"><table><thead><tr><th>Nombre</th><th class="col-opc">Tipo</th><th>Documento</th></tr></thead>
+        <tbody>${cli.map(c => `<tr><td>${xxx(c.nombre)}</td><td class="col-opc">${c.tipo === 'empresa' ? 'Empresa' : 'Persona'}</td><td>${xxx(c.documento)}</td></tr>`).join('')}</tbody></table></div>
+      </section>
+      <section class="panel"><h3>Servicios</h3>
+        <div class="tabla-cont"><table><thead><tr><th>N°</th><th>Servicio</th></tr></thead>
+        <tbody>${svc.map((x, i) => `<tr><td>${i + 1}</td><td>${esc(x.nombre)}</td></tr>`).join('')}</tbody></table></div>
+      </section>
+      <section class="panel"><h3>Festivos ${anio}</h3>
+        <div class="tabla-cont"><table><thead><tr><th>Fecha</th><th>Festivo</th></tr></thead>
+        <tbody>${fest.filter(f => f.fecha.startsWith(anio)).map(f => `<tr><td>${fecha(f.fecha)}</td><td>${esc(f.nombre)}</td></tr>`).join('')}</tbody></table></div>
+      </section>
+      <section class="panel"><h3>Membrete</h3>
+        <p class="sub">Servicio y "Servicios" arriba a la izquierda; código del encargo _ fecha arriba a la derecha; banda gris; pie "Por ＿ regenerativo" e info@regenerativo.co · @_regenerativo_ · +57 320 215 0932. Se aplica a los documentos imprimibles desde la fase 2.</p>
+        ${D.MODO_DEMO ? '<button class="btn sec" id="reiniciar" style="margin-top:12px">Reiniciar datos de ejemplo</button>' : ''}
+      </section>
+    </div>`;
+  marco(s, { titulo: 'Ajustes generales', ruta: 'Portal', activo: 'ajustes', html });
+  const r = $('#reiniciar'); if (r) r.onclick = () => { D.reiniciarDemo(); location.hash = '#/'; ir(); };
+}
