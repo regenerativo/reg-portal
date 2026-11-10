@@ -9,13 +9,15 @@ const MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto'
 const mesDe = f => f.slice(0, 7);
 const compacto = n => n >= 1e6 ? (n / 1e6).toLocaleString('es-CO', { maximumFractionDigits: 1 }) + ' M' : n >= 1e3 ? Math.round(n / 1e3) + ' mil' : String(Math.round(n));
 
-export async function vistaFinanzas(mesSel) {
+export async function vistaFinanzas(mesSel, listaSel) {
   const [cats, movs, encargos, docs] = await Promise.all([D.finCategorias(), D.finMovimientos(), D.encargos(), D.finDocumentosCobro()]);
   const hoy = new Date();
   const mes = mesSel && /^\d{4}-\d{2}$/.test(mesSel) ? mesSel : iso(hoy).slice(0, 7);
   const [a, m] = mes.split('-').map(Number);
   const mesTxt = `${MESES[m - 1]} ${a}`;
-  const delMes = movs.filter(x => mesDe(x.fecha) === mes);
+  const lista = listaSel || 'todo';   // 'todo' | 'general' | id de encargo
+  const enLista = x => lista === 'todo' || (lista === 'general' ? !x.encargo_id : x.encargo_id === lista);
+  const delMes = movs.filter(x => mesDe(x.fecha) === mes && enLista(x));
   const suma = (l, t) => l.filter(x => x.tipo === t).reduce((s, x) => s + Number(x.valor), 0);
   const ing = suma(delMes, 'ingreso'), gas = suma(delMes, 'gasto');
 
@@ -41,39 +43,60 @@ export async function vistaFinanzas(mesSel) {
   const prev = new Date(a, m - 2, 1), next = new Date(a, m, 1);
   const k = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 
+  const balance = ing - gas;
+  const listas = [['todo', 'Todo regenerativo'], ['general', 'Gastos generales'], ...encargos.map(e => [e.id, e.nombre])];
+  const maxCol = Math.max(1, ...catsGasto.map(c => Math.max(c.gastado, Number(c.presupuesto_mensual || 0))));
+  const H = 190;
+  const porDia = [...new Set(delMes.map(x => x.fecha))];
   const html = `
     ${ejemplos ? `<div class="aviso-ej">Hay movimientos de ejemplo para que veas cómo funciona. <button class="btn sec mini" id="borrar-ej">Borrar ejemplos</button></div>` : ''}
-    <div class="barra-doc">
-      <div class="mes-nav"><a class="btn sec mini" href="#/finanzas/${k(prev)}">‹</a><b>${mesTxt}</b><a class="btn sec mini" href="#/finanzas/${k(next)}">›</a></div>
-      <div class="barra-acc"><button class="btn mini" data-nuevo="ingreso">+ Ingreso</button><button class="btn sec mini" data-nuevo="gasto">+ Gasto</button></div>
-    </div>
-    <div class="kpis">
-      <div class="kpi"><div class="et">Ingresos del mes</div><div class="va">${cop(ing)}</div></div>
-      <div class="kpi"><div class="et">Gastos del mes</div><div class="va">${cop(gas)}</div><div class="su">${presTotal ? `de ${cop(presTotal)} presupuestados` : ''}</div>${presTotal ? `<div class="barra"><i style="width:${Math.min(100, gas / presTotal * 100)}%;background:${gas > presTotal ? 'var(--vino)' : C_ING}"></i></div>` : ''}</div>
-      <div class="kpi"><div class="et">Balance del mes</div><div class="va">${cop(ing - gas)}</div><div class="su">${ing - gas >= 0 ? 'Entró más de lo que salió' : 'Salió más de lo que entró'}</div></div>
-      <div class="kpi"><div class="et">Por cobrar</div><div class="va">${cop(porCobrar)}</div><div class="su">Propuestas y adendas aprobadas</div></div>
+    <section class="mon">
+      <div class="mon-total">
+        <div class="mon-et">Balance</div>
+        <div class="mon-cifra">${balance < 0 ? '−' : '+'}${cop(Math.abs(balance)).replace(' COP', '')}<span>COP</span></div>
+        <div class="mon-pills"><span class="pill-gas">− ${cop(gas)}</span><span class="pill-ing">+ ${cop(ing)}</span></div>
+        <div class="mon-filtros">
+          <a href="#/finanzas/${k(prev)}/${lista}" class="mon-flecha">‹</a><b>${mesTxt}</b><a href="#/finanzas/${k(next)}/${lista}" class="mon-flecha">›</a>
+          <span class="sub">en</span>
+          <select id="lista">${listas.map(([v, n]) => `<option value="${v}" ${v === lista ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select>
+        </div>
+      </div>
+      <div class="mon-cols">${catsGasto.map(c => {
+        const p = Number(c.presupuesto_mensual || 0), exc = p && c.gastado > p;
+        const hP = p / maxCol * H, hG = Math.max(c.gastado ? 6 : 0, c.gastado / maxCol * H);
+        return `<button class="mon-col" data-cat="${c.id}" title="${esc(c.nombre)}">
+          <div class="mon-barra" style="height:${H}px">
+            ${p ? `<div class="mon-pres" style="height:${hP}px"></div>` : ''}
+            <div class="mon-gasto ${exc ? 'exc' : ''}" style="height:${hG}px"></div>
+          </div>
+          <div class="mon-ico">${esc(c.icono || '•')}</div>
+          <div class="mon-val">${compacto(c.gastado)}</div>
+          <div class="mon-pct ${exc ? 'xxx' : ''}">${p ? Math.round(c.gastado / p * 100) + '%' : '—'}</div>
+          <div class="mon-nom">${esc(c.nombre)}</div></button>`;
+      }).join('')}</div>
+      <p class="sub mon-ley"><span class="ley-pres"></span>Presupuesto del mes &nbsp; <span class="ley-gas"></span>Gastado &nbsp; <a href="#" id="editar-pres">Editar presupuesto</a></p>
+      <div class="mon-lista">
+        ${porDia.length ? porDia.map(d => `<div class="mon-dia">${fecha(d)}</div>` + delMes.filter(x => x.fecha === d).map(x => `
+          <button class="mon-mov" data-editar="${x.id}">
+            <span class="mon-mico">${esc(x.categoria?.icono || '•')}</span>
+            <span class="mon-mtxt"><span class="sub">${esc(x.categoria?.nombre || '')}${x.encargo ? ' · ' + esc(x.encargo.nombre) : ''}</span>${esc(x.descripcion || '')}</span>
+            <span class="mon-mval ${x.tipo}">${x.tipo === 'ingreso' ? '+' : '−'} ${cop(x.valor)}</span>
+          </button>`).join('')).join('') : '<div class="vacio">No hay movimientos este mes en esta lista.</div>'}
+      </div>
+      <div class="mon-mas"><button class="btn mini" data-nuevo="ingreso">+ Ingreso</button><button class="mon-fab" data-nuevo="gasto" title="Agregar gasto">+</button></div>
+    </section>
+    <div class="kpis kpis-3" style="margin-top:24px">
+      <div class="kpi"><div class="et">Gastos vs. presupuesto</div><div class="va">${presTotal ? Math.round(gas / presTotal * 100) + '%' : '—'}</div><div class="su">${cop(gas)} de ${cop(presTotal)}</div></div>
+      <div class="kpi"><div class="et">Por cobrar</div><div class="va">${cop(porCobrar)}</div><div class="su">Propuestas y adendas aprobadas, menos lo recibido</div></div>
+      <div class="kpi"><div class="et">Encargos con saldo</div><div class="va">${porEnc.filter(r => r.porCobrar > 0).length}</div><div class="su">de ${porEnc.length} con movimientos</div></div>
     </div>
     <div class="dos">
       <section class="panel"><h3>Ingresos y gastos · últimos 6 meses</h3>${barras(serie)}</section>
-      <section class="panel"><h3>Presupuesto de gastos · ${mesTxt}</h3>
-        <div class="pres-cats">${catsGasto.map(c => {
-          const p = Number(c.presupuesto_mensual || 0), pctu = p ? c.gastado / p : 0, exc = p && c.gastado > p;
-          return `<div class="pc"><div class="pc-fila"><span class="pc-ico">${esc(c.icono || '•')}</span><span class="pc-nom">${esc(c.nombre)}</span>
-            <span class="pc-val">${cop(c.gastado)}${p ? ` <span class="sub">/ ${compacto(p)}</span>` : ''}</span></div>
-            ${p ? `<div class="barra"><i style="width:${Math.min(100, pctu * 100)}%;background:${exc ? 'var(--vino)' : C_ING}"></i></div>${exc ? `<div class="pc-exc">▲ Excedido por ${cop(c.gastado - p)}</div>` : ''}` : `<div class="sub">Sin presupuesto · <a href="#" data-pres="${c.id}">asignar</a></div>`}</div>`;
-        }).join('')}</div>
-        <p class="sub" style="margin-top:10px"><a href="#" id="editar-pres">Editar presupuesto mensual por categoría</a></p></section>
-    </div>
-    <section class="panel" style="margin-top:20px"><h3>Por encargo</h3>
-      ${porEnc.length ? `<div class="tabla-cont"><table><thead><tr><th>Encargo</th><th class="num">Valor acordado</th><th class="num">Recibido</th><th class="num">Por cobrar</th><th class="num col-opc">Gastos</th><th class="num col-opc">Neto</th></tr></thead><tbody>
-      ${porEnc.map(r => `<tr><td><b>${esc(r.e.nombre)}</b><div class="sub">${esc(r.e.codigo)}</div></td><td class="num">${cop(r.esperado)}</td><td class="num">${cop(r.recibido)}</td><td class="num">${cop(r.porCobrar)}</td><td class="num col-opc">${cop(r.gastos)}</td><td class="num col-opc">${cop(r.neto)}</td></tr>`).join('')}
-      </tbody></table></div>` : '<div class="vacio">Todavía no hay movimientos asociados a encargos.</div>'}</section>
-    <section class="panel" style="margin-top:20px"><h3>Movimientos de ${mesTxt}</h3>
-      ${delMes.length ? `<div class="tabla-cont"><table><thead><tr><th>Fecha</th><th>Concepto</th><th class="col-opc">Categoría</th><th class="col-opc">Encargo</th><th class="num">Valor</th><th></th></tr></thead><tbody>
-      ${delMes.map(x => `<tr><td>${fecha(x.fecha)}</td><td>${esc(x.descripcion || '')}<div class="sub">${esc(x.medio || '')}</div></td><td class="col-opc">${esc(x.categoria?.icono || '')} ${esc(x.categoria?.nombre || '')}</td>
-        <td class="col-opc sub">${x.encargo ? esc(x.encargo.nombre) : 'Regenerativo'}</td>
-        <td class="num" style="color:${x.tipo === 'ingreso' ? C_ING : 'var(--negro)'}">${x.tipo === 'ingreso' ? '+' : '−'} ${cop(x.valor)}</td>
-        <td class="acciones-fila"><button class="btn sec mini" data-editar="${x.id}">Editar</button></td></tr>`).join('')}</tbody></table></div>` : '<div class="vacio">No hay movimientos este mes.</div>'}</section>`;
+      <section class="panel"><h3>Por encargo</h3>
+      ${porEnc.length ? `<div class="tabla-cont"><table><thead><tr><th>Encargo</th><th class="num">Acordado</th><th class="num">Recibido</th><th class="num">Por cobrar</th><th class="num col-opc">Neto</th></tr></thead><tbody>
+      ${porEnc.map(r => `<tr><td><b>${esc(r.e.nombre)}</b></td><td class="num">${cop(r.esperado)}</td><td class="num">${cop(r.recibido)}</td><td class="num">${cop(r.porCobrar)}</td><td class="num col-opc">${cop(r.neto)}</td></tr>`).join('')}
+      </tbody></table></div>` : '<div class="vacio">Sin movimientos por encargo.</div>'}</section>
+    </div>`;
 
   return { html, montar: recargar => {
     document.querySelectorAll('[data-nuevo]').forEach(b => b.onclick = () => modalMov({ tipo: b.dataset.nuevo, fecha: iso(new Date()) }, cats, encargos, recargar));
@@ -81,7 +104,8 @@ export async function vistaFinanzas(mesSel) {
     const be = $('#borrar-ej'); if (be) be.onclick = async () => { if (confirm('¿Borrar todos los movimientos de ejemplo?')) { await D.finBorrarEjemplos(); recargar(); } };
     const ep = () => modalPresupuesto(cats.filter(c => c.tipo === 'gasto'), recargar);
     $('#editar-pres').onclick = ev => { ev.preventDefault(); ep(); };
-    document.querySelectorAll('[data-pres]').forEach(x => x.onclick = ev => { ev.preventDefault(); ep(); });
+    document.querySelectorAll('[data-cat]').forEach(x => x.onclick = () => modalMov({ tipo: 'gasto', fecha: iso(new Date()), categoria_id: x.dataset.cat, encargo_id: ['todo', 'general'].includes(lista) ? null : lista }, cats, encargos, recargar));
+    $('#lista').onchange = ev => { location.hash = `#/finanzas/${mes}/${ev.target.value}`; };
     document.querySelectorAll('.g-col').forEach(col => {
       col.onmouseenter = () => { const t = $('#tip-fin'); t.innerHTML = col.dataset.tip; t.style.display = 'block'; };
       col.onmousemove = ev => { const t = $('#tip-fin'), r = col.closest('.graf').getBoundingClientRect(); t.style.left = (ev.clientX - r.left + 12) + 'px'; t.style.top = (ev.clientY - r.top - 10) + 'px'; };

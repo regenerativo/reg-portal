@@ -270,3 +270,42 @@ input.ancho-p{width:120px}
 .pc .barra{margin:6px 0 0 36px}
 .pc .sub{margin-left:36px}
 .pc-exc{margin-left:36px;font-size:12px;color:var(--vino)}
+
+/* ============ Finanzas estilo MonAi ============ */
+.mon{border:1px solid var(--gris-claro);border-radius:20px;padding:28px 24px 22px;position:relative}
+.mon-total{text-align:center}
+.mon-et{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--gris);font-family:var(--t-titulo)}
+.mon-cifra{font-family:var(--t-titulo);font-weight:500;font-size:clamp(34px,5vw,52px);letter-spacing:-.01em;margin:4px 0 8px}
+.mon-cifra span{font-size:.32em;color:var(--gris);font-weight:400;margin-left:6px}
+.mon-pills{display:flex;justify-content:center;gap:8px;flex-wrap:wrap}
+.pill-gas{background:#C0603A;color:#fff;border-radius:99px;padding:3px 10px;font-size:12px}
+.pill-ing{background:var(--gris-fondo);border-radius:99px;padding:3px 10px;font-size:12px}
+.mon-filtros{display:flex;justify-content:center;align-items:center;gap:8px;margin-top:14px;font-size:14px;flex-wrap:wrap}
+.mon-filtros b{font-weight:400;text-transform:capitalize;min-width:120px}
+.mon-filtros select{width:auto;padding:5px 10px;border-radius:99px;font-size:13px}
+.mon-flecha{text-decoration:none;font-size:20px;color:var(--gris);padding:0 6px}
+.mon-cols{display:flex;gap:10px;overflow-x:auto;padding:26px 2px 6px;scroll-snap-type:x proximity}
+.mon-col{flex:0 0 74px;background:none;border:0;padding:0;cursor:pointer;text-align:center;scroll-snap-align:start;font:inherit;color:inherit}
+.mon-barra{position:relative;border-radius:18px;background:#F6F6F4}
+.mon-pres{position:absolute;left:0;right:0;bottom:0;border:1.5px dashed #9FB9C0;border-radius:18px}
+.mon-gasto{position:absolute;left:4px;right:4px;bottom:4px;border-radius:14px;background:#A9DEEC;max-height:calc(100% - 8px)}
+.mon-gasto.exc{background:#E7B9A6}
+.mon-col:hover .mon-gasto{filter:brightness(.95)}
+.mon-ico{font-size:20px;margin-top:-34px;position:relative}
+.mon-val{font-size:13px;margin-top:12px;font-weight:600}
+.mon-pct{font-size:11px;color:var(--gris)}
+.mon-nom{font-size:10.5px;color:var(--gris);line-height:1.2;margin-top:2px;height:26px;overflow:hidden}
+.mon-ley{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.ley-pres{display:inline-block;width:12px;height:12px;border:1.5px dashed #9FB9C0;border-radius:4px}
+.ley-gas{display:inline-block;width:12px;height:12px;background:#A9DEEC;border-radius:4px}
+.mon-lista{margin-top:12px}
+.mon-dia{font-size:12px;color:var(--gris);padding:14px 4px 6px;border-bottom:1px dotted var(--gris-claro)}
+.mon-mov{display:flex;align-items:center;gap:12px;width:100%;background:none;border:0;border-bottom:1px dotted var(--gris-claro);padding:10px 4px;cursor:pointer;text-align:left;font:inherit;color:inherit}
+.mon-mov:hover{background:#FAF8F3}
+.mon-mico{width:38px;height:38px;border-radius:50%;background:var(--crema);display:grid;place-items:center;font-size:17px;flex:none}
+.mon-mtxt{flex:1;display:flex;flex-direction:column;font-size:14px}
+.mon-mval{white-space:nowrap;font-size:14px}
+.mon-mval.ingreso{color:#0090B0}
+.mon-mas{display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-top:16px}
+.mon-fab{width:52px;height:52px;border-radius:50%;border:0;background:#C0603A;color:#fff;font-size:28px;cursor:pointer;box-shadow:0 4px 14px rgba(192,96,58,.35)}
+@media (max-width:480px){.mon{padding:20px 14px}.mon-col{flex-basis:64px}}

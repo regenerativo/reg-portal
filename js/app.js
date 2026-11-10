@@ -48,7 +48,7 @@ async function irSeguro() {
     if (p.length === 0) return await vistaEncargos(s);
     if (p[0] === 'encargos' && p[1]) return await vistaExpediente(s, decodeURIComponent(p[1]), p[2] || 'resumen', p[3]);
     if (p[0] === 'finanzas' && s.facturacion) {
-      const v = await vistaFinanzas(p[1]);
+      const v = await vistaFinanzas(p[1], p[2]);
       marco(s, { titulo: 'Finanzas', ruta: 'Portal · solo perfil de facturación', activo: 'finanzas', html: v.html });
       v.montar(ir); return;
     }
