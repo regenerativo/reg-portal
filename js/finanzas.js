@@ -9,8 +9,12 @@ const MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto'
 const mesDe = f => f.slice(0, 7);
 const compacto = n => n >= 1e6 ? (n / 1e6).toLocaleString('es-CO', { maximumFractionDigits: 1 }) + ' M' : n >= 1e3 ? Math.round(n / 1e3) + ' mil' : String(Math.round(n));
 
+const opsCat = (cats, tipo, sel) => tipo === 'socio' ? '<option value="">—</option>' : cats.filter(c => c.tipo === tipo).map(c => `<option value="${c.id}" ${c.id === sel ? 'selected' : ''}>${esc(c.icono || '')} ${esc(c.nombre)}</option>`).join('');
+
 export async function vistaFinanzas(mesSel, listaSel) {
-  const [cats, movs, encargos, docs] = await Promise.all([D.finCategorias(), D.finMovimientos(), D.encargos(), D.finDocumentosCobro()]);
+  const [cats, todos, encargos, docs] = await Promise.all([D.finCategorias(), D.finMovimientos(), D.encargos(), D.finDocumentosCobro()]);
+  const movs = todos.filter(x => (x.estado || 'confirmado') === 'confirmado');
+  const pend = todos.filter(x => x.estado === 'por_confirmar').sort((a, b) => a.fecha < b.fecha ? 1 : -1);
   const hoy = new Date();
   const mes = mesSel && /^\d{4}-\d{2}$/.test(mesSel) ? mesSel : iso(hoy).slice(0, 7);
   const [a, m] = mes.split('-').map(Number);
@@ -50,6 +54,19 @@ export async function vistaFinanzas(mesSel, listaSel) {
   const porDia = [...new Set(delMes.map(x => x.fecha))];
   const html = `
     ${ejemplos ? `<div class="aviso-ej">Hay movimientos de ejemplo para que veas cómo funciona. <button class="btn sec mini" id="borrar-ej">Borrar ejemplos</button></div>` : ''}
+    ${pend.length ? `<section class="pend">
+      <div class="pend-cab"><h3>Por confirmar <span class="pend-n">${pend.length}</span></h3><span class="sub">Llegaron al correo. No cuentan en los totales hasta que les des ✓.</span></div>
+      ${pend.map(x => `<div class="pend-fila" data-pend="${x.id}">
+        <div class="pend-txt"><span class="sub">${fecha(x.fecha)}${x.medio ? ' · ' + esc(x.medio) : ''}</span><b>${esc(x.descripcion || '')}</b>${x.nota_correo ? `<span class="pend-nota">${esc(x.nota_correo)}</span>` : ''}</div>
+        <div class="pend-val ${x.tipo}">${x.tipo === 'ingreso' ? '+' : x.tipo === 'gasto' ? '−' : ''} ${cop(x.valor)}</div>
+        <div class="pend-sel">
+          <select data-f="tipo"><option value="gasto" ${x.tipo === 'gasto' ? 'selected' : ''}>Gasto de la empresa</option><option value="ingreso" ${x.tipo === 'ingreso' ? 'selected' : ''}>Ingreso</option><option value="socio" ${x.tipo === 'socio' ? 'selected' : ''}>Personal / socio (no cuenta)</option></select>
+          <select data-f="categoria_id">${opsCat(cats, x.tipo, x.categoria_id)}</select>
+          <select data-f="encargo_id"><option value="">Regenerativo (general)</option>${encargos.map(e => `<option value="${e.id}" ${e.id === x.encargo_id ? 'selected' : ''}>${esc(e.nombre)}</option>`).join('')}</select>
+        </div>
+        <div class="pend-acc"><button class="btn mini" data-ok>✓</button><button class="btn sec mini" data-no title="Descartar (no es un movimiento real)">✕</button></div>
+      </div>`).join('')}
+    </section>` : ''}
     <section class="mon">
       <div class="mon-total">
         <div class="mon-et">Balance</div>
@@ -78,9 +95,9 @@ export async function vistaFinanzas(mesSel, listaSel) {
       <div class="mon-lista">
         ${porDia.length ? porDia.map(d => `<div class="mon-dia">${fecha(d)}</div>` + delMes.filter(x => x.fecha === d).map(x => `
           <button class="mon-mov" data-editar="${x.id}">
-            <span class="mon-mico">${esc(x.categoria?.icono || '•')}</span>
-            <span class="mon-mtxt"><span class="sub">${esc(x.categoria?.nombre || '')}${x.encargo ? ' · ' + esc(x.encargo.nombre) : ''}</span>${esc(x.descripcion || '')}</span>
-            <span class="mon-mval ${x.tipo}">${x.tipo === 'ingreso' ? '+' : '−'} ${cop(x.valor)}</span>
+            <span class="mon-mico">${esc(x.tipo === 'socio' ? '👤' : x.categoria?.icono || '•')}</span>
+            <span class="mon-mtxt"><span class="sub">${esc(x.tipo === 'socio' ? 'Personal / socio' : x.categoria?.nombre || '')}${x.encargo ? ' · ' + esc(x.encargo.nombre) : ''}</span>${esc(x.descripcion || '')}</span>
+            <span class="mon-mval ${x.tipo}">${x.tipo === 'ingreso' ? '+' : x.tipo === 'gasto' ? '−' : ''} ${cop(x.valor)}${x.tipo === 'socio' ? '<small>no cuenta</small>' : ''}</span>
           </button>`).join('')).join('') : '<div class="vacio">No hay movimientos este mes en esta lista.</div>'}
       </div>
       <div class="mon-mas"><button class="btn mini" data-nuevo="ingreso">+ Ingreso</button><button class="mon-fab" data-nuevo="gasto" title="Agregar gasto">+</button></div>
@@ -101,6 +118,17 @@ export async function vistaFinanzas(mesSel, listaSel) {
   return { html, montar: recargar => {
     document.querySelectorAll('[data-nuevo]').forEach(b => b.onclick = () => modalMov({ tipo: b.dataset.nuevo, fecha: iso(new Date()) }, cats, encargos, recargar));
     document.querySelectorAll('[data-editar]').forEach(b => b.onclick = () => modalMov(movs.find(x => x.id === b.dataset.editar), cats, encargos, recargar));
+    document.querySelectorAll('[data-pend]').forEach(fila => {
+      const sel = n => fila.querySelector(`[data-f="${n}"]`);
+      sel('tipo').onchange = () => { sel('categoria_id').innerHTML = opsCat(cats, sel('tipo').value); sel('categoria_id').disabled = sel('tipo').value === 'socio'; };
+      sel('categoria_id').disabled = sel('tipo').value === 'socio';
+      fila.querySelector('[data-ok]').onclick = async () => {
+        const t = sel('tipo').value;
+        await D.finGuardarMovimiento({ id: fila.dataset.pend, estado: 'confirmado', tipo: t, categoria_id: t === 'socio' ? null : sel('categoria_id').value || null, encargo_id: sel('encargo_id').value || null });
+        recargar();
+      };
+      fila.querySelector('[data-no]').onclick = async () => { await D.finGuardarMovimiento({ id: fila.dataset.pend, estado: 'descartado' }); recargar(); };
+    });
     const be = $('#borrar-ej'); if (be) be.onclick = async () => { if (confirm('¿Borrar todos los movimientos de ejemplo?')) { await D.finBorrarEjemplos(); recargar(); } };
     const ep = () => modalPresupuesto(cats.filter(c => c.tipo === 'gasto'), recargar);
     $('#editar-pres').onclick = ev => { ev.preventDefault(); ep(); };
@@ -135,11 +163,11 @@ function modalMov(m, cats, encargos, recargar) {
   const fondo = document.createElement('div'); fondo.className = 'modal-fondo';
   const opsCat = t => cats.filter(c => c.tipo === t).map(c => `<option value="${c.id}" ${c.id === m.categoria_id ? 'selected' : ''}>${esc(c.icono || '')} ${esc(c.nombre)}</option>`).join('');
   fondo.innerHTML = `<form class="modal" id="fm">
-    <h2>${m.id ? 'Editar' : 'Nuevo'} ${m.tipo === 'ingreso' ? 'ingreso' : 'gasto'}</h2>
+    <h2>${m.id ? 'Editar' : 'Nuevo'} ${m.tipo === 'ingreso' ? 'ingreso' : m.tipo === 'socio' ? 'movimiento personal / socio' : 'gasto'}</h2>
     <div class="grilla-form">
       <div><label>Valor (COP)</label><input name="valor" inputmode="numeric" required value="${m.valor ? Number(m.valor).toLocaleString('es-CO').replace(/,/g, '.') : ''}"></div>
       <div><label>Fecha</label><input name="fecha" type="date" required value="${m.fecha || ''}"></div>
-      <div><label>Categoría</label><select name="categoria_id">${opsCat(m.tipo)}</select></div>
+      ${m.tipo === 'socio' ? '' : `<div><label>Categoría</label><select name="categoria_id">${opsCat(m.tipo)}</select></div>`}
       <div><label>Encargo</label><select name="encargo_id"><option value="">Regenerativo (general)</option>${encargos.map(e => `<option value="${e.id}" ${e.id === m.encargo_id ? 'selected' : ''}>${esc(e.nombre)}</option>`).join('')}</select></div>
       <div class="ancho"><label>Concepto</label><input name="descripcion" value="${esc(m.descripcion || '')}" placeholder="${m.tipo === 'ingreso' ? 'Pago 50% al iniciar' : 'Taxi visita de obra'}"></div>
       <div><label>Medio</label><input name="medio" value="${esc(m.medio || '')}" placeholder="Transferencia, efectivo, tarjeta…"></div>
@@ -155,7 +183,7 @@ function modalMov(m, cats, encargos, recargar) {
   f.onsubmit = async ev => {
     ev.preventDefault();
     const v = Object.fromEntries(new FormData(f));
-    const reg = { tipo: m.tipo, valor: Number(v.valor.replace(/\D/g, '')), fecha: v.fecha, categoria_id: v.categoria_id || null, encargo_id: v.encargo_id || null, descripcion: v.descripcion, medio: v.medio };
+    const reg = { tipo: m.tipo, valor: Number(v.valor.replace(/\D/g, '')), fecha: v.fecha, categoria_id: m.tipo === 'socio' ? null : v.categoria_id || null, encargo_id: v.encargo_id || null, descripcion: v.descripcion, medio: v.medio };
     if (m.id) reg.id = m.id;
     try { await D.finGuardarMovimiento(reg); fondo.remove(); recargar(); } catch (err) { $('#aviso', fondo).textContent = err.message; }
   };
