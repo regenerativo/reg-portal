@@ -244,3 +244,29 @@ input.ancho-p{width:120px}
   .xxx{color:#800000!important}
   .tabla-pres tr.fila-cap td,.cierre-tabla tr.total td{background:var(--gris-claro)!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 }
+
+/* ============ Finanzas ============ */
+.aviso-ej{background:#F7F7D9;border-radius:10px;padding:10px 14px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:13px;flex-wrap:wrap}
+.mes-nav{display:flex;align-items:center;gap:10px;font-family:var(--t-titulo);font-size:17px}
+.mes-nav b{font-weight:400;min-width:150px;text-align:center;text-transform:capitalize}
+.graf{position:relative}
+.leyenda-fin{display:flex;gap:16px;font-size:12px;color:var(--gris);margin-bottom:8px}
+.leyenda-fin i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.graf-area{position:relative}
+.graf-guia{position:absolute;left:0;right:0;border-top:1px dotted var(--gris-claro)}
+.graf-guia span{position:absolute;left:0;top:-15px;font-size:10px;color:var(--gris)}
+.graf-cols{position:absolute;left:40px;right:0;bottom:0;display:flex;justify-content:space-around;align-items:flex-end}
+.g-col{flex:1;display:flex;flex-direction:column;align-items:center;cursor:default}
+.g-par{display:flex;align-items:flex-end;gap:2px}
+.g-par span{width:14px;border-radius:4px 4px 0 0;min-height:1px}
+.g-col:hover .g-par span{opacity:.85}
+.g-mes{font-size:11px;color:var(--gris);margin-top:8px;height:18px}
+.tip-fin{display:none;position:absolute;background:var(--negro);color:var(--blanco);font-size:12px;line-height:1.5;padding:8px 10px;border-radius:8px;pointer-events:none;z-index:5;white-space:nowrap}
+.pres-cats{display:flex;flex-direction:column;gap:12px}
+.pc-fila{display:flex;align-items:center;gap:10px;font-size:14px}
+.pc-ico{width:26px;height:26px;border-radius:8px;background:var(--crema);display:grid;place-items:center;font-size:14px}
+.pc-nom{flex:1}
+.pc-val{white-space:nowrap}
+.pc .barra{margin:6px 0 0 36px}
+.pc .sub{margin-left:36px}
+.pc-exc{margin-left:36px;font-size:12px;color:var(--vino)}

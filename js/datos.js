@@ -328,3 +328,13 @@ export function ordenCodigo(a, b) {
 }
 
 export const miRol = encargoId => MODO_DEMO ? Promise.resolve('admin') : q(c => c.rpc('rol_en_encargo', { p_encargo: encargoId })).then(ok);
+
+// ================= Finanzas (solo perfil de facturación) =================
+export const esFacturacion = () => MODO_DEMO ? Promise.resolve(false) : q(c => c.rpc('es_facturacion')).then(ok);
+export const finCategorias = () => q(c => c.from('fin_categorias').select('*').eq('activa', true).order('tipo').order('orden')).then(ok);
+export const finMovimientos = () => q(c => c.from('fin_movimientos').select('*, categoria:fin_categorias(nombre,icono), encargo:encargos(codigo,nombre)').order('fecha', { ascending: false })).then(ok);
+export const finGuardarMovimiento = m => q(c => m.id ? c.from('fin_movimientos').update(m).eq('id', m.id) : c.from('fin_movimientos').insert(m)).then(ok);
+export const finBorrarMovimiento = id => q(c => c.from('fin_movimientos').delete().eq('id', id)).then(ok);
+export const finBorrarEjemplos = () => q(c => c.from('fin_movimientos').delete().eq('ejemplo', true)).then(ok);
+export const finActualizarCategoria = (id, cambios) => q(c => c.from('fin_categorias').update(cambios).eq('id', id)).then(ok);
+export const finDocumentosCobro = () => q(c => c.from('documentos').select('encargo_id, tipo, estado, contenido').in('tipo', ['propuesta', 'adenda'])).then(ok);
