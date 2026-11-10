@@ -17,7 +17,7 @@ button,input,select,textarea{font:inherit;color:inherit}
 .solo-movil{display:none}
 
 /* ---------- Acceso ---------- */
-.acceso{min-height:100%;display:grid;place-items:center;padding:32px;background:var(--crema)}
+.acceso{min-height:100vh;display:grid;place-items:center;padding:32px;background:var(--crema)}
 .acceso-caja{width:100%;max-width:380px;background:var(--blanco);padding:40px 32px;border-radius:14px}
 .acceso-caja img{width:44px;display:block;margin-bottom:28px}
 .acceso-caja h1{font-size:22px;margin-bottom:6px}
