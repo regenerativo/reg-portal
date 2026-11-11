@@ -96,10 +96,6 @@ function marco(s, { titulo, ruta = '', acciones = '', html, menu = null, activo 
       </div>
       <main class="cont">${html}</main>
       <footer class="remate">
-        <div class="remate-cols">
-          <div><span class="g">Estudio</span><span>Bogotá - Colombia</span></div>
-          <div><span class="g">Contacto</span><a href="mailto:info@regenerativo.co">info@regenerativo.co</a><a href="https://wa.me/573202150932" target="_blank" rel="noopener">+57 320 215 0932</a><a href="https://instagram.com/_regenerativo_" target="_blank" rel="noopener">@_regenerativo_</a></div>
-        </div>
         <div class="remate-fin">
           <span class="porx"><span class="p1">Por</span><span class="ln"></span><span class="p2">regenerativo</span></span>
           <span class="g c">No intervenimos, regeneramos.</span>
