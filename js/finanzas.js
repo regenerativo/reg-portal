@@ -40,7 +40,7 @@ export async function vistaFinanzas(mesSel, listaSel) {
 
   // Últimos 6 meses
   const meses = Array.from({ length: 6 }, (_, i) => { const d = new Date(a, m - 1 - (5 - i), 1); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; });
-  const serie = meses.map(k => ({ k, ing: suma(movs.filter(x => mesDe(x.fecha) === k), 'ingreso'), gas: suma(movs.filter(x => mesDe(x.fecha) === k), 'gasto') }));
+  const serie = meses.map(k => ({ k, ing: suma(movs.filter(x => mesDe(x.fecha) === k), 'ingreso'), gas: suma(movs.filter(x => mesDe(x.fecha) === k && !esSal(x)), 'gasto') }));
 
   // Presupuesto por categoría (gastos del mes)
   const catsGasto = cats.filter(c => c.tipo === 'gasto' && c.id !== SALARIO).map(c => ({ ...c, gastado: delMes.filter(x => x.categoria_id === c.id).reduce((s, x) => s + Number(x.valor), 0) }));
@@ -113,7 +113,7 @@ export async function vistaFinanzas(mesSel, listaSel) {
       <div class="kpi"><div class="et">Encargos con saldo</div><div class="va">${porEnc.filter(r => r.porCobrar > 0).length}</div><div class="su">de ${porEnc.length} con movimientos</div></div>
     </div>
     <div class="dos">
-      <section class="panel"><h3>Ingresos y gastos · últimos 6 meses</h3>${barras(serie)}</section>
+      <section class="panel"><h3>Ingresos y gastos de la operación · últimos 6 meses</h3>${barras(serie)}</section>
       <section class="panel"><h3>Por encargo</h3>
       ${porEnc.length ? `<div class="tabla-cont"><table><thead><tr><th>Encargo</th><th class="num">Acordado</th><th class="num">Recibido</th><th class="num">Por cobrar</th><th class="num col-opc">Neto</th></tr></thead><tbody>
       ${porEnc.map(r => `<tr><td><b>${esc(r.e.nombre)}</b></td><td class="num">${cop(r.esperado)}</td><td class="num">${cop(r.recibido)}</td><td class="num">${cop(r.porCobrar)}</td><td class="num col-opc">${cop(r.neto)}</td></tr>`).join('')}
