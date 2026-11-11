@@ -220,7 +220,7 @@ async function vistaEncargos(s) {
       (!q || [e.nombre, e.codigo, e.cliente?.nombre].join(' ').toLowerCase().includes(q)));
     $('#tabla').innerHTML = f.length ? `
       <div class="tabla-cont"><table>
-        <thead><tr><th class="col-opc">Código</th><th>Encargo</th><th class="col-opc">Cliente</th><th class="col-opc">Tipo</th><th class="col-opc">Inicio</th><th class="col-opc">Fin</th><th>Tiempo</th><th>Estado</th></tr></thead>
+        <thead><tr><th class="col-opc">Cotización</th><th>Encargo</th><th class="col-opc">Cliente</th><th class="col-opc">Tipo</th><th class="col-opc">Inicio</th><th class="col-opc">Fin</th><th>Tiempo</th><th>Estado</th></tr></thead>
         <tbody>${f.map(e => `
           <tr class="clic" data-c="${esc(e.codigo)}">
             <td class="sub col-opc">${esc(e.codigo)}</td>
@@ -512,7 +512,7 @@ async function vistaPropuestas(s) {
     const f = lista.filter(p => (!est || p.estado === est) && (!q || [p.nombre, p.codigo, p.cliente?.nombre].join(' ').toLowerCase().includes(q)));
     $('#tabla').innerHTML = f.length ? `
       <div class="tabla-cont"><table>
-        <thead><tr><th class="col-opc">Código</th><th>Propuesta</th><th class="col-opc">Cliente</th><th class="num col-opc">Honorarios</th><th class="col-opc">Enviada</th><th>Estado</th><th></th></tr></thead>
+        <thead><tr><th class="col-opc">Cotización</th><th>Propuesta</th><th class="col-opc">Cliente</th><th class="num col-opc">Honorarios</th><th class="col-opc">Enviada</th><th>Estado</th><th></th></tr></thead>
         <tbody>${f.map(p => `
           <tr>
             <td class="sub col-opc">${esc(p.codigo)}</td>
