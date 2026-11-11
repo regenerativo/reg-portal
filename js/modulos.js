@@ -68,7 +68,7 @@ function barraDoc(ctx, d, tipo) {
   if (ctx.admin && d.estado === 'borrador') b.push(`<button class="btn sec mini" data-doc="enviar">Marcar enviado</button>`);
   if (ctx.admin && tipo === 'contrato' && d.estado !== 'firmado') b.push(`<button class="btn sec mini" data-doc="firmar">Marcar firmado</button>`);
   if (d.estado === 'enviado' && ctx.admin && tipo !== 'informe') b.push(`<button class="btn ok mini" data-doc="aprobar">✓ Aprobar</button>`);
-  b.push(`<button class="btn sec mini" data-doc="pdf">PDF</button>`);
+  if (!(ctx.esCliente && ['presupuesto', 'gantt'].includes(tipo))) b.push(`<button class="btn sec mini" data-doc="pdf">PDF</button>`);
   if (!ctx.esCliente) b.push(`<button class="btn sec mini" data-doc="word">Word</button>`);
   return `<div class="barra-doc">
     <div><span class="etiqueta ${d.estado}">${ESTADOS_DOC[d.estado]}</span>
