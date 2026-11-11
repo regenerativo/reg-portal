@@ -66,7 +66,8 @@ async function irSeguro() {
 
 // ---------------- Marco general ----------------
 function marco(s, { titulo, ruta = '', acciones = '', html, menu = null, activo = '' }) {
-  const enlacesGen = `
+  const esCli = s.email.endsWith('@clientes.portal.regenerativo.co');
+  const enlacesGen = esCli ? '' : `
     <div class="grupo">Portal</div>
     ${s.admin ? `<a href="#/propuestas" class="${activo === 'propuestas' ? 'activo' : ''}">Propuestas preliminares</a>` : ''}
     ${s.soloFinanzas ? '' : `<a href="#/" class="${activo === 'encargos' ? 'activo' : ''}">Encargos</a>`}
