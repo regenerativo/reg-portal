@@ -438,3 +438,95 @@ h3,.panel h3{font-size:17px;font-weight:500;letter-spacing:-.01em}
 @media (max-width:820px){.lado{top:0;height:100vh;padding:28px 20px}.barra-enc{font-size:14px}.logo-reg{font-size:18px}}
 .barra-enc{font-weight:400}
 .lado .grupo{padding-top:26px}
+
+/* =====================================================================
+   SISTEMA GRÁFICO DE REGENERATIVO.CO (maqueta REG - BRAND WEB)
+   Sin cajas: bloques separados por espacio. Rótulos 14.25/500/.12em gris en mayúscula,
+   títulos Light 34–54, nombres 17/500, texto 14.25 gris 1.65, botón negro radio 8.
+   ===================================================================== */
+.barra-web{border-radius:0 0 18px 18px;background:rgba(255,255,255,.62);backdrop-filter:blur(24px) saturate(1.7);-webkit-backdrop-filter:blur(24px) saturate(1.7);box-shadow:inset 0 -1px 0 rgba(255,255,255,.9),0 10px 30px rgba(30,34,29,.06)}
+.titulo-pag h1{line-height:1}
+/* rótulos */
+.kpi .et,.lado .grupo,.panel h3,.mon-et,.pend-cab h3,.cabeza .ruta,.soportes h3,.od-panel h3{font-size:14.25px!important;font-weight:500!important;letter-spacing:.12em!important;text-transform:uppercase;color:var(--gris)!important;font-family:var(--t-titulo)}
+label{font-size:12px!important;letter-spacing:.12em;font-weight:500}
+/* botones */
+.btn{border-radius:8px!important;padding:12px 22px;font-size:14.25px;font-weight:500;letter-spacing:.04em;background:var(--negro);border-color:var(--negro)}
+.btn.mini{padding:8px 14px;font-size:13px}
+.btn.sec{background:transparent;border:1px solid #E2E2E2;color:var(--negro)}
+.btn.sec:hover{border-color:var(--negro);color:var(--negro)}
+.btn.ok{background:var(--negro);border-color:var(--negro)}
+/* bloques sin cajas */
+.kpis{gap:32px 48px;margin-bottom:56px}
+.kpi{border:0!important;padding:0;border-radius:0!important}
+.kpi .va{font-size:clamp(26px,2.6vw,36px)!important;font-weight:300;letter-spacing:-.025em;margin-top:10px}
+.kpi .su{font-size:14.25px;color:var(--gris);line-height:1.65}
+.barra{height:2px;border-radius:0;background:#EFEFEF}.barra i{border-radius:0;background:var(--negro)}
+.dos{gap:56px 96px}
+.panel{border:0!important;padding:0;border-radius:0!important}
+.panel h3{margin-bottom:24px}
+.datos{grid-template-columns:200px 1fr;gap:10px 48px;font-size:14.25px}
+.datos dt{color:var(--gris)}.datos dd.det{font-style:normal;font-weight:400}
+.modulos{grid-template-columns:1fr;gap:0}
+.modulo{border:0!important;border-radius:0!important;padding:14px 0;border-bottom:1px solid #EFEFEF!important;display:flex;justify-content:space-between;align-items:baseline}
+.modulo b{font-size:17px;font-weight:500}
+.modulo span{font-size:14.25px}
+.vacio{border:0;text-align:left;padding:24px 0;color:var(--gris)}
+.etiqueta{background:none!important;padding:0;font-size:14.25px;font-weight:500}
+.etiqueta.activo,.etiqueta.aprobado,.etiqueta.firmado,.etiqueta.despego{color:var(--petroleo)}
+.etiqueta.enviado,.etiqueta.en_espera,.etiqueta.pausado{color:#8A7A00}
+.etiqueta.no_despego{color:var(--vino)}
+.etiqueta.borrador,.etiqueta.cerrado{color:var(--gris)}
+input,select,textarea{border:1px solid #E2E2E2;border-radius:3px!important;padding:11px 12px}
+input:focus,select:focus,textarea:focus{border-color:var(--negro)}
+/* tablas: encabezado gris regenerativo, líneas punteadas (regla de regenerativo) */
+.tabla-cont{border:0!important;border-radius:0!important}
+th{font-size:12px!important;letter-spacing:.12em!important;padding:12px}
+td{padding:14px 12px;font-size:14.25px}
+tr.clic:hover td,.fila-enc:hover td{background:#F8F8F8}
+.modal{border-radius:8px!important;padding:36px}
+.modal h2{font-size:28px;font-weight:300;letter-spacing:-.025em}
+.hoja{border:1px solid #EFEFEF;border-radius:0!important;box-shadow:0 10px 30px rgba(30,34,29,.05)}
+.barra-doc{padding-bottom:18px;border-bottom:1px solid #EFEFEF;margin-bottom:28px}
+.filtros{gap:12px 16px}
+.lado a{font-weight:300}.lado a.activo{font-weight:500}
+.lado a.activo::before{display:none}
+/* ---------- Finanzas con la gráfica de la web (se mantienen los colores) ---------- */
+.mon{border:0!important;padding:0;border-radius:0!important}
+.mon-total{text-align:left}
+.mon-cifra{font-weight:300;font-size:clamp(44px,6vw,72px);letter-spacing:-.03em;line-height:1;margin:18px 0 14px}
+.mon-cifra span{font-size:.25em;letter-spacing:0}
+.mon-pills,.mon-filtros,.mon-sal{justify-content:flex-start}
+.pill-gas,.pill-ing{background:none!important;padding:0;font-size:14.25px;font-weight:500}
+.pill-gas{color:#C0603A}.pill-ing{color:#0090B0}
+.mon-pills{gap:24px}
+.mon-sal{font-size:14.25px;gap:28px;margin-top:12px}
+.mon-filtros{margin-top:28px;gap:14px;font-size:15px}
+.mon-filtros b{font-weight:500;min-width:0}
+.mon-filtros select{border:0;border-bottom:1px solid var(--negro);border-radius:0!important;padding:4px 2px;font-size:15px;background:transparent}
+.mon-flecha{color:var(--negro);font-size:22px}
+.mon-cols{gap:18px;padding:48px 0 8px}
+.mon-col{flex-basis:84px}
+.mon-barra,.mon-pres,.mon-gasto{border-radius:3px!important}
+.mon-barra{background:#F4F4F2}
+.mon-val{font-weight:500;font-size:14.25px}
+.mon-nom{font-size:12px;height:30px}
+.mon-ley{margin-top:16px;font-size:14.25px}
+.mon-lista{margin-top:48px}
+.mon-dia{font-size:14.25px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;border-bottom:1px solid #EFEFEF;padding:28px 0 10px}
+.mon-mov{border-bottom:1px solid #EFEFEF;padding:14px 0}
+.mon-mov:hover{background:transparent;color:var(--gris)}
+.mon-mico{background:none!important;width:28px;font-size:18px}
+.mon-mtxt{font-size:14.25px}.mon-mtxt .sub{font-size:14.25px}
+.mon-mval{font-size:15px;font-weight:500}
+.mon-mas{margin-top:28px;gap:16px}
+.mon-fab{border-radius:8px!important;width:auto;height:auto;padding:12px 22px;font-size:14.25px;font-weight:500;letter-spacing:.04em;box-shadow:none}
+.mon-fab::after{content:" Gasto"}
+.pend{border:0!important;border-top:1px solid #C0603A!important;border-radius:0!important;background:none;padding:22px 0 8px;margin-bottom:56px}
+.pend-n{border-radius:3px}
+.pend-fila{border-top:1px solid #EFEFEF;padding:16px 0}
+.pend-txt b{font-size:15px}
+.pend-nota{font-size:13px}
+.aviso-ej{border-radius:3px!important}
+.graf-guia{border-top-color:#EFEFEF}
+.g-par span{border-radius:2px 2px 0 0}
+.tip-fin{border-radius:3px}
