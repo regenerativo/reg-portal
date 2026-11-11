@@ -299,14 +299,14 @@ async function vistaExpediente(s, codigo, seccion, sub) {
   if (!e) return marco(s, { titulo: 'Encargo no encontrado', html: `<div class="vacio">No existe el encargo ${esc(codigo)} o no tienes acceso. <a href="#/">Volver a los encargos</a></div>` });
   const admin = await D.esAdmin();
   const base = `#/encargos/${encodeURIComponent(codigo)}`;
-  const visibles = MODULOS.filter(([k]) => moduloAplica(k, e.tipo) && (k !== 'ajustes' || admin));
+  const rol = s.admin ? 'admin' : await D.miRol(e.id);
+  const visibles = MODULOS.filter(([k]) => moduloAplica(k, e.tipo) && (k !== 'ajustes' || admin) && !(k === 'adendas' && rol === 'cliente'));
   const menu = `<div class="grupo">${esc(e.nombre)}</div>` + visibles.map(([k, n, listo]) =>
     `<a href="${base}/${k}" class="${k === seccion ? 'activo' : ''}">${n}${listo ? '' : '<span class="pronto">Próximamente</span>'}</a>`).join('');
   const nombreSec = (MODULOS.find(m => m[0] === seccion) || [, 'Resumen'])[1];
   const comun = { s, menu, ruta: `Encargos / ${esc(e.codigo)}`, titulo: esc(e.nombre) };
   const fest = new Set((await D.festivos()).map(f => f.fecha));
 
-  const rol = s.admin ? 'admin' : await D.miRol(e.id);
   const ctx = { e, s, admin, rol, esCliente: rol === 'cliente', fest, base, sub, recargar: ir };
   if (M.VISTAS[seccion]) {
     const v = await M.VISTAS[seccion](ctx);

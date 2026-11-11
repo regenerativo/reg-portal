@@ -80,6 +80,27 @@ function montarBarra(ctx, d, tipo, cuerpoImpresion) {
 
 const vacioDoc = (ctx, tipo) => `<div class="vacio">${ctx.esCliente ? 'Todavía no hay documentos enviados en este módulo.' : `No hay ${tipo} en este encargo todavía.`}</div>`;
 
+
+// Vista del cliente para documentos legales: solo tarjeta de descarga (PDF), sin texto en pantalla
+const NOMBRE_TARJETA = { propuesta: 'la propuesta económica', contrato: 'el contrato', adenda: 'la adenda' };
+function tarjetaDescarga(ctx, d, tipo, i) {
+  const titulo = tipo === 'adenda' ? `Adenda ${String(d.numero).padStart(2, '0')}` : tipo === 'contrato' ? 'Contrato' : 'Propuesta económica';
+  return `<div class="tarjeta-doc">
+    <div class="td-ico">PDF</div>
+    <div class="td-txt"><b>${titulo}</b><span>A continuación encuentras el documento de ${NOMBRE_TARJETA[tipo]}.</span>
+      <span class="sub">Versión ${d.version} · ${fecha(d.fecha)}${d.estado === 'aprobado' || d.estado === 'firmado' ? ' · ' + ESTADOS_DOC[d.estado] : ''}</span></div>
+    <button class="btn mini" data-dl="${i}">Descargar</button></div>`;
+}
+function vistaClienteDocs(ctx, items) {
+  return {
+    html: items.map((x, i) => tarjetaDescarga(ctx, x.d, x.tipo, i)).join(''),
+    montar: () => document.querySelectorAll('[data-dl]').forEach(b => b.onclick = () => {
+      const x = items[Number(b.dataset.dl)];
+      imprimir(ctx.e, `${ctx.e.codigo} _ ${fechaCodigo(x.d.fecha)}`, x.cuerpo());
+    }),
+  };
+}
+
 // ---------------- Brief ----------------
 async function brief(ctx) {
   const d = (await D.documentos(ctx.e.id, 'brief')).at(-1);
@@ -116,6 +137,7 @@ async function propuesta(ctx) {
     <h3>Condiciones</h3>${(c.condiciones || []).map(x => `<p><b>${esc(x.titulo)}.</b> ${esc(x.texto)}</p>`).join('')}
     <p class="sub">Vigencia de la propuesta: ${esc(c.vigencia_dias)} días calendario.</p>
     <div class="cierre">Cordialmente,<br><br>Área de Proyectos<br><b>REGENERATIVO</b></div>`;
+  if (ctx.esCliente) return vistaClienteDocs(ctx, [{ d, tipo: 'propuesta', cuerpo }]);
   return { html: barraDoc(ctx, d, 'propuesta') + `<article class="hoja">${cuerpo()}</article>`, montar: () => montarBarra(ctx, d, 'propuesta', cuerpo) };
 }
 
@@ -149,21 +171,26 @@ async function contrato(ctx) {
     <div class="kpi"><div class="et">Valor inicial</div><div class="va">${cop(inicial)}</div><div class="su">Propuesta aprobada (Anexo 1)</div></div>
     <div class="kpi"><div class="et">Adendas aprobadas</div><div class="va">${cop(sumaAdendas)}</div><div class="su">${adendas.length} adenda(s) en total</div></div>
     <div class="kpi"><div class="et">Valor total del contrato</div><div class="va">${cop(inicial + sumaAdendas)}</div><div class="su">Se calcula solo</div></div></div>`;
+  if (ctx.esCliente) return vistaClienteDocs(ctx, [{ d, tipo: 'contrato', cuerpo }, ...adendas.map(a => ({ d: a, tipo: 'adenda', cuerpo: () => cuerpoAdenda(ctx, a) }))]);
   return { html: barraDoc(ctx, d, 'contrato') + resumen + `<article class="hoja">${cuerpo()}</article>`, montar: () => montarBarra(ctx, d, 'contrato', cuerpo) };
 }
 
 // ---------------- Adendas ----------------
-async function adendas(ctx) {
-  const lista = await D.documentos(ctx.e.id, 'adenda');
-  if (!lista.length) return { html: vacioDoc(ctx, 'adendas') };
-  const sel = ctx.sub ? lista.find(a => String(a.numero) === ctx.sub) || lista.at(-1) : lista.at(-1);
-  const c = sel.contenido;
-  const cuerpo = () => `
-    <h1 class="doc-titulo">Adenda ${String(sel.numero).padStart(2, '0')}</h1><p class="doc-sub">${esc(ctx.e.codigo)} · ${esc(ctx.e.nombre)}</p>
+function cuerpoAdenda(ctx, a) {
+  const c = a.contenido;
+  return `
+    <h1 class="doc-titulo">Adenda ${String(a.numero).padStart(2, '0')}</h1><p class="doc-sub">${esc(ctx.e.codigo)} · ${esc(ctx.e.nombre)}</p>
     <p><b>Tipo:</b> ${esc(c.tipo)}</p><p>${esc(c.descripcion)}</p>
     <p><b>Valor:</b> ${cop(c.valor)} · <b>Plazo adicional:</b> ${esc(c.plazo_dias)} días</p>
     <table><thead><tr><th>%</th><th>Momento</th><th class="num">Valor</th></tr></thead>
     <tbody>${(c.pagos || []).map(x => `<tr><td>${pct(x.pct)}</td><td>${esc(x.momento)}</td><td class="num">${cop(x.pct * c.valor)}</td></tr>`).join('')}</tbody></table>`;
+}
+async function adendas(ctx) {
+  const lista = await D.documentos(ctx.e.id, 'adenda');
+  if (!lista.length) return { html: vacioDoc(ctx, 'adendas') };
+  const sel = ctx.sub ? lista.find(a => String(a.numero) === ctx.sub) || lista.at(-1) : lista.at(-1);
+  if (ctx.esCliente) return vistaClienteDocs(ctx, lista.map(a => ({ d: a, tipo: 'adenda', cuerpo: () => cuerpoAdenda(ctx, a) })));
+  const cuerpo = () => cuerpoAdenda(ctx, sel);
   const tabs = lista.length > 1 ? `<div class="filtros">${lista.map(a => `<a class="btn ${a.id === sel.id ? '' : 'sec'} mini" href="${ctx.base}/adendas/${a.numero}">Adenda ${String(a.numero).padStart(2, '0')}</a>`).join('')}</div>` : '';
   return { html: tabs + barraDoc(ctx, sel, 'adenda') + `<article class="hoja">${cuerpo()}</article>`, montar: () => montarBarra(ctx, sel, 'adenda', cuerpo) };
 }
