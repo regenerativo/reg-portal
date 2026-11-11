@@ -85,18 +85,17 @@ export async function descargarPDF({ servicio, codigo, nombre, cuerpoHTML }) {
       cierre: { marginTop: 22 },
       firmas: { marginTop: 40 },
     },
-    header: () => ({ stack: [
+    header: pag => ({ stack: [
       { columns: [
         { stack: [{ text: (servicio || 'XXX').toUpperCase(), bold: true, fontSize: 10.5, characterSpacing: 0.6 }, { text: 'Servicios', font: 'StolzlLight', fontSize: 9.5 }] },
-        { text: codigo, alignment: 'right', fontSize: 9, width: 'auto' },
+        { stack: [{ text: String(pag), alignment: 'right', fontSize: 9 }, { text: codigo, alignment: 'right', fontSize: 9 }], width: 'auto' },
       ], margin: [MI, 40, MD, 0] },
       { canvas: [{ type: 'rect', x: 0, y: 0, w: ANCHO, h: 22, color: GRIS }], margin: [0, 14, 0, 0] },
     ] }),
     footer: (pag, total) => ({ columns: [
       { text: [{ text: 'Por  ', font: 'StolzlLight', fontSize: 10 }, { text: '———  ', color: TINTA, fontSize: 7 }, { text: 'regenerativo', bold: true, fontSize: 11 }], width: 'auto' },
       { stack: [
-        { text: 'info@regenerativo.co    @_regenerativo_    +57 320 215 0932', fontSize: 7.5, color: GRIS_TXT, alignment: 'right' },
-        total > 1 ? { text: `${pag} / ${total}`, fontSize: 7.5, color: GRIS_TXT, alignment: 'right', marginTop: 2 } : '',
+        { text: 'info@regenerativo.co    @_regenerativo_    +57 320 215 0932', fontSize: 7.5, color: GRIS_TXT, alignment: 'right', marginTop: 2 },
       ], width: '*' },
     ], margin: [MI, 30, MD, 0] }),
     content: contenido,

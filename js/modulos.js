@@ -81,7 +81,7 @@ function montarBarra(ctx, d, tipo, cuerpoImpresion) {
         await D.aprobarDocumento(d.id, nombre, cedula); return ctx.recargar();
       }
       const cuerpo = cuerpoImpresion();
-      const codigo = `${ctx.e.codigo} _ ${fechaCodigo(d.fecha)}`;
+      const codigo = `${ctx.e.codigo}_${nombreSinAnio(ctx.e)} _ ${fechaCodigo(d.fecha)}`;
       if (acc === 'pdf') imprimir(ctx.e, codigo, cuerpo, nombreArchivo(ctx.e, tipo, d, 'pdf'));
       if (acc === 'word') descargar(nombreArchivo(ctx.e, tipo, d, 'doc'), cuerpo, 'doc');
     } catch (err) { alert(err.message); }
@@ -106,7 +106,7 @@ function vistaClienteDocs(ctx, items) {
     html: items.map((x, i) => tarjetaDescarga(ctx, x.d, x.tipo, i)).join(''),
     montar: () => document.querySelectorAll('[data-dl]').forEach(b => b.onclick = () => {
       const x = items[Number(b.dataset.dl)];
-      imprimir(ctx.e, `${ctx.e.codigo} _ ${fechaCodigo(x.d.fecha)}`, x.cuerpo(), nombreArchivo(ctx.e, x.tipo, x.d, 'pdf'));
+      imprimir(ctx.e, `${ctx.e.codigo}_${nombreSinAnio(ctx.e)} _ ${fechaCodigo(x.d.fecha)}`, x.cuerpo(), nombreArchivo(ctx.e, x.tipo, x.d, 'pdf'));
     }),
   };
 }
