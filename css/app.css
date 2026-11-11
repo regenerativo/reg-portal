@@ -391,3 +391,19 @@ h3,.panel h3{font-size:17px;font-weight:500;letter-spacing:-.01em}
 .porx .p1{font-weight:300}.porx .p2{font-weight:500}
 .porx .ln{display:inline-block;width:1.65em;height:.05em;min-height:1px;background:currentColor;margin:0 .3em;transform:translateY(-.3em)}
 @media (max-width:760px){.remate{padding:56px 20px 28px}.remate-fin{grid-template-columns:1fr;gap:4px}.remate-fin>*{justify-self:start!important;text-align:left!important}}
+/* Maqueta como la web: fondo blanco, marca "regenerativo" en Stolzl 500, cabecera fija translúcida */
+.lado{background:var(--blanco);border-right:1px solid #EFEFEF;padding:22px 18px}
+.marca{padding:6px 10px 26px;text-decoration:none}
+.marca span{font-size:20px;font-weight:500;letter-spacing:-.01em;color:var(--negro)}
+.lado a{padding:6px 10px}
+.lado a:hover{background:transparent;color:var(--gris)}
+.lado .pie button{color:var(--negro);font-weight:500}
+.cabeza{position:sticky;top:0;z-index:5;background:rgba(255,255,255,.78);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:0;box-shadow:0 10px 30px rgba(30,34,29,.05);padding:22px clamp(20px,3.3vw,48px)}
+.cont,.remate{padding-left:clamp(20px,3.3vw,48px);padding-right:clamp(20px,3.3vw,48px)}
+.cont{padding-top:clamp(32px,4vw,56px)}
+.panel,.kpi{border-color:#EFEFEF}
+.tabla-cont{border:0;border-top:1px solid var(--negro)}
+.acceso{background:var(--blanco)}
+.acceso-caja{border:1px solid #EFEFEF;box-shadow:0 10px 30px rgba(30,34,29,.05)}
+.acceso-caja h1{font-size:28px;letter-spacing:-.025em}
+@media (max-width:900px){.lado{box-shadow:0 10px 30px rgba(30,34,29,.12)}}

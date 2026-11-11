@@ -76,7 +76,7 @@ function marco(s, { titulo, ruta = '', acciones = '', html, menu = null, activo 
   raiz.innerHTML = `
   <div class="app">
     <nav class="lado" id="lado">
-      <div class="marca"><img src="assets/isotipo.png" alt=""><span>regenerativo</span></div>
+      <a class="marca" href="#/"><span>regenerativo</span></a>
       ${menu || ''}
       ${enlacesGen}
       <div class="pie">${s.email.endsWith('@clientes.portal.regenerativo.co') ? 'Acceso de cliente' : esc(s.email)}<br><button id="salir">Cerrar sesión</button></div>
