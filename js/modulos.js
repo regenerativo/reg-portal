@@ -1,5 +1,6 @@
 // Módulos del expediente: Brief, Propuesta, Contrato, Adendas, Presupuesto, Gantt, Informes y Base de precios.
 import * as D from './datos.js';
+import { descargarPDF } from './pdf.js';
 import { cop, fecha, fechaCodigo, pct, aFecha, iso, diasDeTrabajo, finDeTrabajo, fechaCorte, ESTADOS_TAREA, DIAS_TRABAJO, TIPOS } from './formato.js';
 
 const $ = (s, r = document) => r.querySelector(s);
@@ -20,7 +21,16 @@ export function nombreArchivo(e, tipo, doc, ext) {
 }
 
 // ---------------- Impresión con membrete (papel legal) ----------------
-export function imprimir(e, codigoFecha, cuerpo) {
+export async function imprimir(e, codigoFecha, cuerpo, nombre) {
+  try {
+    document.body.classList.add('generando');
+    await descargarPDF({ servicio: e.servicio?.nombre, codigo: codigoFecha, nombre: nombre || `${codigoFecha} _ ${e.nombre}.pdf`, cuerpoHTML: cuerpo });
+    return;
+  } catch (err) { console.warn('PDF directo no disponible, uso impresión del navegador', err); }
+  finally { document.body.classList.remove('generando'); }
+  imprimirNavegador(e, codigoFecha, cuerpo);
+}
+function imprimirNavegador(e, codigoFecha, cuerpo) {
   let cont = $('#impresion');
   if (!cont) { cont = document.createElement('div'); cont.id = 'impresion'; document.body.appendChild(cont); }
   cont.innerHTML = `
@@ -72,7 +82,7 @@ function montarBarra(ctx, d, tipo, cuerpoImpresion) {
       }
       const cuerpo = cuerpoImpresion();
       const codigo = `${ctx.e.codigo} _ ${fechaCodigo(d.fecha)}`;
-      if (acc === 'pdf') imprimir(ctx.e, codigo, cuerpo);
+      if (acc === 'pdf') imprimir(ctx.e, codigo, cuerpo, nombreArchivo(ctx.e, tipo, d, 'pdf'));
       if (acc === 'word') descargar(nombreArchivo(ctx.e, tipo, d, 'doc'), cuerpo, 'doc');
     } catch (err) { alert(err.message); }
   });
@@ -96,7 +106,7 @@ function vistaClienteDocs(ctx, items) {
     html: items.map((x, i) => tarjetaDescarga(ctx, x.d, x.tipo, i)).join(''),
     montar: () => document.querySelectorAll('[data-dl]').forEach(b => b.onclick = () => {
       const x = items[Number(b.dataset.dl)];
-      imprimir(ctx.e, `${ctx.e.codigo} _ ${fechaCodigo(x.d.fecha)}`, x.cuerpo());
+      imprimir(ctx.e, `${ctx.e.codigo} _ ${fechaCodigo(x.d.fecha)}`, x.cuerpo(), nombreArchivo(ctx.e, x.tipo, x.d, 'pdf'));
     }),
   };
 }
