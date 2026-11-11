@@ -10,7 +10,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 const TENANT = "d5bde326-cff3-4067-b8ed-8821209cee21";
 const CLIENTE = "5fb20396-2b10-470b-b028-86f4b6e9d9ca";
 const ALCANCE = "offline_access Files.ReadWrite Mail.Read User.Read";
-const PORTAL = "https://regenerativo.github.io/reg-portal/";
+const PORTAL = "https://portal.regenerativo.co/";
 const RAIZ = "REG";
 const PROPUESTAS = "REG/REG  I  GESTION INTEGRAL/ZL_REG_PROPUESTAS";
 const ESTRUCTURA = [
