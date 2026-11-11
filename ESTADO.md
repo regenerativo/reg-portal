@@ -1,3 +1,7 @@
+> **EL PORTAL SE MUDÓ.** Desde el 10 nov 2026 el portal vive en **https://regenerativo.co/portal/**,
+> dentro del repo `regenerativo/regenerativo-web`, carpeta `portal/`. Todos los cambios se hacen allá.
+> Este repo solo redirige portal.regenerativo.co → regenerativo.co/portal. No editar aquí.
+
 # ESTADO DEL PORTAL DE ENCARGOS — regenerativo
 
 Última actualización: 10 nov 2026. Este repo (rama `main`) es la versión vigente del portal.
