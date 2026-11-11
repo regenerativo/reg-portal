@@ -76,7 +76,7 @@ function marco(s, { titulo, ruta = '', acciones = '', html, menu = null, activo 
   raiz.innerHTML = `
   <div class="app">
     <nav class="lado" id="lado">
-      <a class="marca" href="#/"><span>regenerativo</span></a>
+      
       ${menu || ''}
       ${enlacesGen}
       <div class="pie">${s.email.endsWith('@clientes.portal.regenerativo.co') ? 'Acceso de cliente' : esc(s.email)}<br><button id="salir">Cerrar sesión</button></div>
@@ -88,7 +88,7 @@ function marco(s, { titulo, ruta = '', acciones = '', html, menu = null, activo 
           <button class="menu-movil" id="abrir-menu" aria-label="Menú">☰</button>
           <div style="min-width:0"><div class="ruta">${ruta}</div><h1>${titulo}</h1></div>
         </div>
-        <div class="acciones">${acciones}</div>
+        <div class="cab-der"><div class="acciones">${acciones}</div><a href="#/" class="logo-reg" aria-label="regenerativo, inicio">regenerativo</a></div>
       </header>
       <main class="cont">${html}</main>
       <footer class="remate">
