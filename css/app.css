@@ -532,3 +532,7 @@ tr.clic:hover td,.fila-enc:hover td{background:#F8F8F8}
 .tip-fin{border-radius:3px}
 .lado .grupo{padding-top:28px!important;padding-bottom:8px}
 .remate-fin{margin-top:0}
+/* Botón igual a "Enviar mensaje" de regenerativo.co/contacto */
+.btn-envio{border-radius:8px;display:inline-flex;align-items:center;gap:10px;background:#1E221D;color:#FFFFFF;border:0;font:inherit;font-size:14.25px;font-weight:500;letter-spacing:.04em;padding:16px 28px;min-height:44px;cursor:pointer;white-space:nowrap}
+.btn-envio:hover{background:#3A3F39}
+@media (max-width:480px){.btn-envio{padding:14px 20px}}

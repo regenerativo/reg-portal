@@ -67,8 +67,8 @@ function barraDoc(ctx, d, tipo) {
   if (ctx.admin && d.estado === 'borrador') b.push(`<button class="btn sec mini" data-doc="enviar">Marcar enviado</button>`);
   if (ctx.admin && tipo === 'contrato' && d.estado !== 'firmado') b.push(`<button class="btn sec mini" data-doc="firmar">Marcar firmado</button>`);
   if (d.estado === 'enviado' && ctx.admin && tipo !== 'informe') b.push(`<button class="btn ok mini" data-doc="aprobar">✓ Aprobar</button>`);
-  if (!(ctx.esCliente && ['presupuesto', 'gantt'].includes(tipo))) b.push(`<button class="btn sec mini" data-doc="pdf">PDF</button>`);
-  if (!ctx.esCliente) b.push(`<button class="btn sec mini" data-doc="word">Word</button>`);
+  if (!(ctx.esCliente && ['presupuesto', 'gantt'].includes(tipo))) b.push(`<button class="btn-envio" data-doc="pdf">Descargar PDF <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none"><path d="M9.5 5.5l6 6.5-6 6.5"></path></svg></button>`);
+  if (!ctx.esCliente) b.push(`<button class="btn-envio" data-doc="word">Descargar Word <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none"><path d="M9.5 5.5l6 6.5-6 6.5"></path></svg></button>`);
   return `<div class="barra-doc">
     <div><span class="etiqueta ${d.estado}">${ESTADOS_DOC[d.estado]}</span>
       <span class="sub"> &nbsp;${esc(d.titulo || '')} · versión ${d.version} · ${fecha(d.fecha)}</span>
@@ -105,7 +105,7 @@ function tarjetaDescarga(ctx, d, tipo, i) {
   return `<div class="tarjeta-doc">
     <div class="td-txt"><b>${titulo}</b><span>A continuación encuentras el documento de ${NOMBRE_TARJETA[tipo]}.</span>
       <span class="sub">Versión ${d.version} · ${fecha(d.fecha)}${d.estado === 'aprobado' || d.estado === 'firmado' ? ' · ' + ESTADOS_DOC[d.estado] : ''}</span></div>
-    <button class="btn-dl" data-dl="${i}">Descargar PDF <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M7 1v9M3 6.5l4 4 4-4M1.5 13h11" fill="none" stroke="currentColor" stroke-width="1.3"/></svg></button></div>`;
+    <button class="btn-envio" data-dl="${i}">Descargar PDF <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none"><path d="M9.5 5.5l6 6.5-6 6.5"></path></svg></button></div>`;
 }
 function vistaClienteDocs(ctx, items) {
   return {
