@@ -345,7 +345,8 @@ async function vistaExpediente(s, codigo, seccion, sub) {
         <section class="panel">
           <h3>Detalles técnicos del encargo</h3>
           <dl class="datos">
-            <dt>Código</dt><dd class="det">${esc(e.codigo)}</dd>
+            <dt>Encargo</dt><dd class="det">${esc(e.nombre)}</dd>
+            <dt>Cotización</dt><dd class="det">${esc(e.codigo)}</dd>
             <dt>Cliente</dt><dd class="det">${xxx(e.cliente?.nombre)}</dd>
             <dt>Servicio</dt><dd class="det">${xxx(e.servicio?.nombre)}</dd>
             <dt>Tipo</dt><dd class="det">${TIPOS[e.tipo] || ''}</dd>

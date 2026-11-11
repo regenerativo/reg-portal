@@ -25,7 +25,7 @@ const DESCRIPTOR = { brief: 'BRIEF', propuesta: 'PROPUESTA', contrato: 'CONTRATO
 // Membrete único: izquierda servicio + "Servicios" (gris); derecha tipo de documento + fecha (gris)
 function membrete(e, tipo, d) {
   const n = d?.numero && ['adenda', 'informe', 'cuenta'].includes(tipo) ? ' ' + String(d.numero).padStart(2, '0') : '';
-  const ref = tipo === 'contrato' && d?.contenido?.numero ? d.contenido.numero : e.codigo;
+  const ref = tipo === 'contrato' && d?.contenido?.numero ? d.contenido.numero : tipo === 'propuesta' ? e.codigo : e.nombre;
   return { documento: `${DESCRIPTOR[tipo] || 'DOCUMENTO'}${n} _ ${ref}`, codigo: fechaCodigo(d?.fecha || new Date()) };
 }
 export async function imprimir(e, codigoFecha, cuerpo, nombre, documento) {
@@ -124,7 +124,7 @@ async function brief(ctx) {
   if (!d) return { html: vacioDoc(ctx, 'brief') };
   const c = d.contenido;
   const cuerpo = () => `
-    <h1 class="doc-titulo">Brief del encargo</h1><p class="doc-sub">${esc(ctx.e.nombre)} · ${esc(ctx.e.codigo)}</p>
+    <h1 class="doc-titulo">Brief del encargo</h1><p class="doc-sub">${esc(ctx.e.nombre)}</p>
     <h3>Necesidades</h3><p>${esc(c.necesidades)}</p>
     <h3>Usuarios</h3><p>${esc(c.usuarios)}</p>
     <h3>Espacios</h3>
@@ -196,7 +196,7 @@ async function contrato(ctx) {
 function cuerpoAdenda(ctx, a) {
   const c = a.contenido;
   return `
-    <h1 class="doc-titulo">Adenda ${String(a.numero).padStart(2, '0')}</h1><p class="doc-sub">${esc(ctx.e.codigo)} · ${esc(ctx.e.nombre)}</p>
+    <h1 class="doc-titulo">Adenda ${String(a.numero).padStart(2, '0')}</h1><p class="doc-sub">${esc(ctx.e.nombre)}</p>
     <p><b>Tipo:</b> ${esc(c.tipo)}</p><p>${esc(c.descripcion)}</p>
     <p><b>Valor:</b> ${cop(c.valor)} · <b>Plazo adicional:</b> ${esc(c.plazo_dias)} días</p>
     <table><thead><tr><th>%</th><th>Momento</th><th class="num">Valor</th></tr></thead>
@@ -242,7 +242,7 @@ async function presupuesto(ctx) {
     if (!p) return { html: vacioDoc(ctx, 'presupuesto') };
     const t = totales(p, p.resumen, area);
     const caps = [...new Map(p.resumen.map(r => [r.capitulo_orden, r])).values()];
-    const cuerpo = () => `<h1 class="doc-titulo">Presupuesto de obra</h1><p class="doc-sub">${esc(ctx.e.codigo)} · ${esc(ctx.e.nombre)} · versión ${p.version}</p>
+    const cuerpo = () => `<h1 class="doc-titulo">Presupuesto de obra</h1><p class="doc-sub">${esc(ctx.e.nombre)} · versión ${p.version}</p>
       <table><thead><tr><th style="width:60px">N°</th><th>Tipo de actividad</th><th class="num">Valor</th></tr></thead><tbody>
       ${caps.map(c => `<tr class="fila-cap"><td>${c.capitulo_orden}.</td><td>${esc(c.capitulo)}</td><td class="num">${cop(p.resumen.filter(r => r.capitulo_orden === c.capitulo_orden).reduce((s, r) => s + Number(r.total), 0))}</td></tr>
         ${p.resumen.filter(r => r.capitulo_orden === c.capitulo_orden).map(r => `<tr><td class="sub">${r.capitulo_orden}.${r.actividad_orden}</td><td>${esc(r.actividad)}</td><td class="num">${cop(r.total)}</td></tr>`).join('')}`).join('')}
@@ -269,7 +269,7 @@ async function presupuesto(ctx) {
               <td class="num">${cop(i.valor_unitario)}</td><td class="num">${cop(i.cantidad * i.valor_unitario)}</td><td class="col-opc sub">${esc(i.contratista || '')}</td></tr>`).join('');
         }).join('');
     }).join('')}</tbody></table>`;
-  const cuerpo = () => `<h1 class="doc-titulo">Presupuesto de obra</h1><p class="doc-sub">${esc(ctx.e.codigo)} · ${esc(ctx.e.nombre)} · versión ${p.version}</p>${tabla(false)}${cierreHTML(p, t, area)}`;
+  const cuerpo = () => `<h1 class="doc-titulo">Presupuesto de obra</h1><p class="doc-sub">${esc(ctx.e.nombre)} · versión ${p.version}</p>${tabla(false)}${cierreHTML(p, t, area)}`;
   const d = { ...p, titulo: 'Presupuesto de obra' };
   const html = barraDoc(ctx, d, 'presupuesto') + `<div class="barra-doc" style="margin-top:-8px"><div class="sub">${editable ? 'Borrador: puedes cambiar cantidades; los totales se recalculan solos.' : `Versión ${ESTADOS_DOC[p.estado].toLowerCase()}: los valores están congelados.`} El cliente solo ve los totales por tipo de actividad.</div>
     <div class="barra-acc"><button class="btn sec mini" id="xls">Excel</button>${ctx.admin && p.estado !== 'borrador' ? '<button class="btn sec mini" id="reabrir-p">Volver a borrador</button>' : ''}</div></div>` +
@@ -417,7 +417,7 @@ async function informes(ctx) {
     <h1 class="doc-titulo">Informe de avance de obra ${String(d.numero).padStart(2, '0')}</h1><p class="doc-sub">Corte al ${fecha(g.corte)}</p>
     <h3>Detalles técnicos del encargo</h3>
     <dl class="datos det">
-      <dt>Encargo</dt><dd>${esc(ctx.e.nombre)}</dd><dt>Código</dt><dd>${esc(ctx.e.codigo)}</dd><dt>Cliente</dt><dd>${xxx(ctx.e.cliente?.nombre)}</dd>
+      <dt>Encargo</dt><dd>${esc(ctx.e.nombre)}</dd><dt>Cotización</dt><dd>${esc(ctx.e.codigo)}</dd><dt>Cliente</dt><dd>${xxx(ctx.e.cliente?.nombre)}</dd>
       <dt>Ubicación</dt><dd>${xxx(ctx.e.direccion)}</dd><dt>Inicio · Fin</dt><dd>${fecha(ctx.e.inicio)} · ${fecha(ctx.e.fin)}</dd><dt>Días de trabajo</dt><dd>${DIAS_TRABAJO[ctx.e.dias_trabajo]}</dd></dl>
     <h3>Resumen del avance</h3>
     <table><tbody><tr><td>Esperado al corte</td><td class="num">${pct(g.esperadoTotal)}</td></tr><tr><td>Avance real</td><td class="num">${pct(g.realTotal)}</td></tr>
