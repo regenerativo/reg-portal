@@ -357,3 +357,11 @@ export async function finBorrarSoporte(s) {
   await (await cliente()).storage.from('soportes').remove([s.ruta]);
   return q(c => c.from('fin_soportes').delete().eq('id', s.id)).then(ok);
 }
+
+// OneDrive (función onedrive-conexion): url | estado | despegar | subir
+export async function onedrive(accion, extra = {}) {
+  const { data, error } = await (await cliente()).functions.invoke('onedrive-conexion', { body: { accion, ...extra } });
+  if (error) { let m = error.message; try { m = (await error.context.json()).error || m; } catch (_) {} throw new Error(m); }
+  if (data?.error) throw new Error(data.error);
+  return data;
+}

@@ -43,7 +43,8 @@ async function irSeguro() {
   if (ruta === '/acceso') return vistaAcceso();
   if (ruta === '/recuperar') return vistaRecuperar();
   if (ruta === '/nueva-clave') return vistaNuevaClave({ tipo: 'recovery' });
-  const p = ruta.split('/').filter(Boolean);
+  const p = ruta.split('?')[0].split('/').filter(Boolean);
+  const qs = new URLSearchParams(ruta.split('?')[1] || '');
   if (s.soloFinanzas && p[0] !== 'finanzas') { location.hash = '#/finanzas'; return; }   // facturacion@ solo ve Finanzas
   try {
     if (p.length === 0) return await vistaEncargos(s);
@@ -54,7 +55,7 @@ async function irSeguro() {
       v.montar(ir); return;
     }
     if (p[0] === 'base-precios' && s.admin) return await vistaBasePrecios(s, p[1]);
-    if (p[0] === 'ajustes') return await vistaAjustes(s);
+    if (p[0] === 'ajustes' && s.admin) return await vistaAjustes(s, qs);
     if (p[0] === 'propuestas' && s.admin) return await vistaPropuestas(s);
     return marco(s, { titulo: 'Página no encontrada', html: `<div class="vacio">Esta página no existe. <a href="#/">Volver a los encargos</a></div>` });
   } catch (err) {
@@ -440,10 +441,18 @@ function moduloAplica(k, tipo) {
 }
 
 // ---------------- Ajustes generales ----------------
-async function vistaAjustes(s) {
-  const [svc, cli, fest] = await Promise.all([D.servicios(), D.clientes(), D.festivos()]);
+async function vistaAjustes(s, qs) {
+  const [svc, cli, fest, od] = await Promise.all([D.servicios(), D.clientes(), D.festivos(), D.onedrive('estado').catch(e => ({ error: e.message }))]);
+  const msjOd = { ok: 'OneDrive quedó conectado.', error: 'No se pudo conectar. Revisa que la clave secreta esté en Supabase y vuelve a intentar.', expirado: 'La autorización tardó demasiado. Vuelve a intentar.' }[qs?.get('onedrive')] || '';
   const anio = String(new Date().getFullYear());
   const html = `
+    <section class="panel od-panel"><h3>OneDrive</h3>
+      ${msjOd ? `<div class="aviso-ej">${msjOd}</div>` : ''}
+      ${od?.conectado ? `<p>Conectado con <b>${esc(od.cuenta || '')}</b>. Al marcar <b>Despegó</b> se crea la carpeta del encargo en REG con su estructura, y los documentos del portal se guardan en su carpeta.</p>
+        <button class="btn sec mini" id="od-conectar">Volver a conectar</button>`
+      : `<p class="sub">${od?.secreto === false ? 'Falta guardar la clave secreta MS_CLIENT_SECRET en Supabase.' : 'Autoriza una sola vez con apardo@regenerativo.co.'}</p>
+        <button class="btn" id="od-conectar" ${od?.secreto === false ? 'disabled' : ''}>Conectar OneDrive</button>`}
+    </section>
     <div class="dos">
       <section class="panel"><h3>Clientes</h3>
         <div class="tabla-cont"><table><thead><tr><th>Nombre</th><th class="col-opc">Tipo</th><th>Documento</th></tr></thead>
@@ -464,6 +473,7 @@ async function vistaAjustes(s) {
     </div>`;
   marco(s, { titulo: 'Ajustes generales', ruta: 'Portal', activo: 'ajustes', html });
   const r = $('#reiniciar'); if (r) r.onclick = () => { D.reiniciarDemo(); location.hash = '#/'; ir(); };
+  const oc = $('#od-conectar'); if (oc) oc.onclick = async () => { try { location.href = (await D.onedrive('url')).url; } catch (e) { alert(e.message); } };
 }
 
 // ---------------- Propuestas preliminares ----------------
@@ -516,6 +526,8 @@ async function vistaPropuestas(s) {
       if (acc === 'despego') {
         if (!confirm(`¿${p.nombre} despegó? Se crea el encargo ${p.codigo}.`)) return;
         const codigo = await D.despegarPropuesta(p.id);
+        try { const e = await D.encargo(codigo); const r2 = await D.onedrive('despegar', { encargo_id: e.id }); alert(`Carpeta creada en OneDrive: ${r2.carpeta}${r2.movidos?.length ? '\nPropuesta movida a LEGALES/PROP _ ECONOMICAS: ' + r2.movidos.join(', ') : ''}`); }
+        catch (e2) { alert('El encargo se creó, pero no se pudo crear la carpeta en OneDrive: ' + e2.message); }
         location.hash = `#/encargos/${encodeURIComponent(codigo)}/ajustes`; return;
       }
       if (acc === 'ver') { location.hash = `#/encargos/${encodeURIComponent(p.codigo)}`; return; }
