@@ -85,12 +85,13 @@ export async function descargarPDF({ servicio, documento, codigo, nombre, cuerpo
       cierre: { marginTop: 22 },
       firmas: { marginTop: 40 },
     },
-    header: () => ({ stack: [
+    header: pag => ({ stack: [
       { columns: [
         { stack: [{ text: (servicio || 'XXX').toUpperCase(), bold: true, fontSize: 10.5, characterSpacing: 0.6 }, { text: 'Servicios', font: 'StolzlLight', fontSize: 9.5, color: GRIS_TXT }] },
         { stack: [{ text: (documento || '').toUpperCase(), bold: true, fontSize: 10.5, characterSpacing: 0.6, alignment: 'right' }, { text: codigo, font: 'StolzlLight', fontSize: 9.5, color: GRIS_TXT, alignment: 'right' }], width: 'auto' },
       ], margin: [MI, 40, MD, 0] },
       { canvas: [{ type: 'rect', x: 0, y: 0, w: ANCHO, h: 22, color: GRIS }], margin: [0, 14, 0, 0] },
+      { text: String(pag), fontSize: 8.5, alignment: 'right', margin: [MI, -16, MD, 0] },
     ] }),
     footer: (pag, total) => ({ columns: [
       { text: [{ text: 'Por  ', font: 'StolzlLight', fontSize: 10 }, { text: '———  ', color: TINTA, fontSize: 7 }, { text: 'regenerativo', bold: true, fontSize: 11 }], width: 'auto' },
