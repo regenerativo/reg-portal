@@ -74,7 +74,7 @@ function marco(s, { titulo, ruta = '', acciones = '', html, menu = null, activo 
     ${s.admin ? `<a href="#/base-precios" class="${activo === 'base' ? 'activo' : ''}">Base de precios</a>` : ''}
     ${s.admin ? `<a href="#/ajustes" class="${activo === 'ajustes' ? 'activo' : ''}">Ajustes generales</a>` : ''}`;
   const tituloPag = ruta.includes(' / ') ? ruta.split(' / ').pop() : titulo;
-  const subPag = ruta.includes(' / ') ? titulo : '';
+  const subPag = '';
   raiz.innerHTML = `
   <header class="barra-web">
     <div class="barra-web-in">
@@ -321,7 +321,7 @@ async function vistaExpediente(s, codigo, seccion, sub) {
   const menu = visibles.map(([k, n, listo]) =>
     `<a href="${base}/${k}" class="${k === seccion ? 'activo' : ''}">${n}${listo ? '' : '<span class="pronto">Próximamente</span>'}</a>`).join('');
   const nombreSec = (MODULOS.find(m => m[0] === seccion) || [, 'Resumen'])[1];
-  const comun = { s, menu, ruta: `Encargos / ${esc(e.codigo)}`, titulo: esc(e.nombre) };
+  const comun = { s, menu, ruta: `Encargos / ${esc(e.codigo)} / ${nombreSec}`, titulo: esc(e.nombre) };
   const fest = new Set((await D.festivos()).map(f => f.fecha));
 
   const ctx = { e, s, admin, rol, esCliente: rol === 'cliente', fest, base, sub, recargar: ir };
