@@ -180,6 +180,10 @@ function modalMov(m, cats, encargos, recargar) {
       <div class="ancho"><label>Concepto</label><input name="descripcion" value="${esc(m.descripcion || '')}" placeholder="${m.tipo === 'ingreso' ? 'Pago 50% al iniciar' : 'Taxi visita de obra'}"></div>
       <div><label>Medio</label><input name="medio" value="${esc(m.medio || '')}" placeholder="Transferencia, efectivo, tarjeta…"></div>
     </div>
+    ${m.id ? `<div class="soportes"><h3>Soportes</h3>
+      ${m.correo_texto || m.nota_correo || m.ref_correo ? `<div class="sop-correo"><span class="sub">Llegó por correo${m.medio ? ' · ' + esc(m.medio) : ''}</span>${esc(m.correo_texto || m.descripcion || '')}</div>` : ''}
+      <div id="sop-lista" class="sub">Cargando…</div>
+      <label class="btn sec mini sop-subir">+ Subir soporte (PDF, XML o foto)<input type="file" id="sop-arch" multiple accept=".pdf,.xml,.zip,image/*" hidden></label></div>` : '<p class="sub">Guarda el movimiento para poder adjuntarle soportes.</p>'}
     <div class="aviso" id="aviso"></div>
     <div class="pie-modal">${m.id ? '<button type="button" class="btn sec" id="borrar" style="margin-right:auto">Borrar</button>' : ''}<button type="button" class="btn sec" id="cancelar">Cancelar</button><button class="btn" type="submit">Guardar</button></div>
   </form>`;
@@ -187,6 +191,19 @@ function modalMov(m, cats, encargos, recargar) {
   const f = $('#fm', fondo);
   f.valor.oninput = () => { const n = f.valor.value.replace(/\D/g, ''); f.valor.value = n ? Number(n).toLocaleString('es-CO').replace(/,/g, '.') : ''; };
   $('#cancelar', fondo).onclick = () => fondo.remove();
+  if (m.id) {
+    const pintar = async () => {
+      const l = await D.finSoportes(m.id);
+      $('#sop-lista', fondo).innerHTML = l.length ? l.map(x => `<div class="sop-item"><a href="#" data-ver="${x.id}">${esc(x.nombre)}</a><button type="button" class="btn sec mini" data-quitar="${x.id}">Quitar</button></div>`).join('') : 'Sin soportes todavía.';
+      fondo.querySelectorAll('[data-ver]').forEach(a => a.onclick = async ev => { ev.preventDefault(); window.open(await D.finUrlSoporte(l.find(x => x.id === a.dataset.ver).ruta), '_blank'); });
+      fondo.querySelectorAll('[data-quitar]').forEach(b2 => b2.onclick = async () => { await D.finBorrarSoporte(l.find(x => x.id === b2.dataset.quitar)); pintar(); });
+    };
+    pintar();
+    $('#sop-arch', fondo).onchange = async ev => {
+      try { for (const a of ev.target.files) await D.finSubirSoporte(m.id, a); pintar(); }
+      catch (err) { $('#aviso', fondo).textContent = 'No se pudo subir: ' + err.message; }
+    };
+  }
   const b = $('#borrar', fondo); if (b) b.onclick = async () => { if (confirm('¿Borrar este movimiento?')) { await D.finBorrarMovimiento(m.id); fondo.remove(); recargar(); } };
   f.onsubmit = async ev => {
     ev.preventDefault();

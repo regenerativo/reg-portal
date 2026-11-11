@@ -338,3 +338,22 @@ export const finBorrarMovimiento = id => q(c => c.from('fin_movimientos').delete
 export const finBorrarEjemplos = () => q(c => c.from('fin_movimientos').delete().eq('ejemplo', true)).then(ok);
 export const finActualizarCategoria = (id, cambios) => q(c => c.from('fin_categorias').update(cambios).eq('id', id)).then(ok);
 export const finDocumentosCobro = () => q(c => c.from('documentos').select('encargo_id, tipo, estado, contenido').in('tipo', ['propuesta', 'adenda'])).then(ok);
+
+// Soportes contables (PDF, XML, fotos) por movimiento — bucket privado "soportes"
+export const finSoportes = movId => q(c => c.from('fin_soportes').select('*').eq('movimiento_id', movId).order('creado')).then(ok);
+export async function finSubirSoporte(movId, archivo) {
+  const limpio = archivo.name.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^\w.\- ]/g, '_');
+  const ruta = `${movId}/${Date.now()}_${limpio}`;
+  const c = await cliente();
+  const { error } = await c.storage.from('soportes').upload(ruta, archivo, { contentType: archivo.type || 'application/octet-stream' });
+  if (error) throw error;
+  return q(c2 => c2.from('fin_soportes').insert({ movimiento_id: movId, nombre: archivo.name, ruta })).then(ok);
+}
+export async function finUrlSoporte(ruta) {
+  const { data, error } = await (await cliente()).storage.from('soportes').createSignedUrl(ruta, 300);
+  if (error) throw error; return data.signedUrl;
+}
+export async function finBorrarSoporte(s) {
+  await (await cliente()).storage.from('soportes').remove([s.ruta]);
+  return q(c => c.from('fin_soportes').delete().eq('id', s.id)).then(ok);
+}
