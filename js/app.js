@@ -49,6 +49,8 @@ async function irSeguro() {
   try {
     if (p.length === 0) return await vistaEncargos(s);
     if (p[0] === 'encargos' && p[1]) return await vistaExpediente(s, decodeURIComponent(p[1]), p[2] || 'resumen', p[3]);
+    const RESERVADAS = ['finanzas', 'base-precios', 'ajustes', 'propuestas', 'acceso', 'recuperar', 'nueva-clave', 'encargos'];
+    if (p[0] && !RESERVADAS.includes(p[0])) return await vistaExpediente(s, decodeURIComponent(p[0]), p[1] || 'resumen', p[2]);
     if (p[0] === 'finanzas' && s.facturacion) {
       const v = await vistaFinanzas(p[1], p[2]);
       marco(s, { titulo: 'Finanzas', ruta: 'Portal · solo perfil de facturación', activo: 'finanzas', html: v.html });
@@ -196,7 +198,7 @@ function vistaRecuperar() {
 async function vistaEncargos(s) {
   const lista = await D.encargos();
   const admin = s.admin;
-  if (!admin && lista.length === 1) { location.replace(`#/encargos/${encodeURIComponent(lista[0].codigo)}`); return; }
+  if (!admin && lista.length === 1) { location.replace(`#/${D.slugEncargo(lista[0])}`); return; }
   const fest = new Set((await D.festivos()).map(f => f.fecha));
   const conTiempo = lista.map(e => ({ ...e, tiempo: tiempoTranscurrido(e, fest) }));
   const activos = conTiempo.filter(e => e.estado === 'activo');
@@ -222,7 +224,7 @@ async function vistaEncargos(s) {
       <div class="tabla-cont"><table>
         <thead><tr><th class="col-opc">Cotización</th><th>Encargo</th><th class="col-opc">Cliente</th><th class="col-opc">Tipo</th><th class="col-opc">Inicio</th><th class="col-opc">Fin</th><th>Tiempo</th><th>Estado</th></tr></thead>
         <tbody>${f.map(e => `
-          <tr class="clic" data-c="${esc(e.codigo)}">
+          <tr class="clic" data-c="${D.slugEncargo(e)}">
             <td class="sub col-opc">${esc(e.codigo)}</td>
             <td><b>${esc(e.nombre)}</b><div class="sub">${esc(e.servicio?.nombre || '')}<span class="solo-movil"> · ${esc(e.codigo)}</span></div></td>
             <td class="col-opc">${xxx(e.cliente?.nombre)}</td>
@@ -232,7 +234,7 @@ async function vistaEncargos(s) {
             <td><span class="etiqueta ${e.estado}">${ESTADOS_ENCARGO[e.estado] || e.estado}</span></td>
           </tr>`).join('')}</tbody></table></div>`
       : `<div class="vacio">${lista.length ? 'Ningún encargo coincide con la búsqueda.' : 'Todavía no hay encargos.'}</div>`;
-    document.querySelectorAll('tr.clic').forEach(tr => tr.onclick = () => location.hash = `#/encargos/${encodeURIComponent(tr.dataset.c)}`);
+    document.querySelectorAll('tr.clic').forEach(tr => tr.onclick = () => location.hash = `#/${tr.dataset.c}`);
   };
   $('#buscar').oninput = pintar; $('#festado').onchange = pintar; pintar();
   if (admin) $('#nuevo').onclick = () => modalEncargo();
@@ -301,7 +303,7 @@ async function modalEncargo(e = null) {
       if (e) { delete v.codigo; await D.actualizarEncargo(e.id, v); }
       else await D.crearEncargo(v);
       fondo.remove();
-      location.hash = `#/encargos/${encodeURIComponent(e?.codigo || v.codigo)}`;
+      location.hash = `#/${e ? D.slugEncargo(e) : encodeURIComponent(v.codigo)}`;
       ir();
     } catch (err) { $('#aviso', fondo).textContent = err.message; }
   };
@@ -312,11 +314,11 @@ async function vistaExpediente(s, codigo, seccion, sub) {
   const e = await D.encargo(codigo);
   if (!e) return marco(s, { titulo: 'Encargo no encontrado', html: `<div class="vacio">No existe el encargo ${esc(codigo)} o no tienes acceso. <a href="#/">Volver a los encargos</a></div>` });
   const admin = await D.esAdmin();
-  const base = `#/encargos/${encodeURIComponent(codigo)}`;
+  const base = `#/${D.slugEncargo(e)}`;
   const rol = s.admin ? 'admin' : await D.miRol(e.id);
   const visibles = MODULOS.filter(([k]) => moduloAplica(k, e.tipo) && (k !== 'ajustes' || admin) && !(k === 'adendas' && rol === 'cliente'));
   const menu = visibles.map(([k, n, listo]) =>
-    `<a href="${base}/${k}" class="${k === seccion ? 'activo' : ''}">${n}${listo ? '' : '<span class="pronto">Próximamente</span>'}</a>`).join('');
+    `<a href="${k === 'resumen' ? base : base + '/' + k}" class="${k === seccion ? 'activo' : ''}">${n}${listo ? '' : '<span class="pronto">Próximamente</span>'}</a>`).join('');
   const nombreSec = (MODULOS.find(m => m[0] === seccion) || [, 'Resumen'])[1];
   const comun = { s, menu, ruta: `Encargos / ${esc(e.codigo)} / ${nombreSec}`, titulo: esc(e.nombre) };
   const fest = new Set((await D.festivos()).map(f => f.fecha));
@@ -541,9 +543,9 @@ async function vistaPropuestas(s) {
         const codigo = await D.despegarPropuesta(p.id);
         try { const e = await D.encargo(codigo); const r2 = await D.onedrive('despegar', { encargo_id: e.id }); alert(`Carpeta creada en OneDrive: ${r2.carpeta}${r2.movidos?.length ? '\nPropuesta movida a LEGALES/PROP _ ECONOMICAS: ' + r2.movidos.join(', ') : ''}`); }
         catch (e2) { alert('El encargo se creó, pero no se pudo crear la carpeta en OneDrive: ' + e2.message); }
-        location.hash = `#/encargos/${encodeURIComponent(codigo)}/ajustes`; return;
+        location.hash = `#/${codigo}/ajustes`; return;
       }
-      if (acc === 'ver') { location.hash = `#/encargos/${encodeURIComponent(p.codigo)}`; return; }
+      if (acc === 'ver') { const e3 = await D.encargo(p.codigo); location.hash = `#/${e3 ? D.slugEncargo(e3) : p.codigo}`; return; }
       ir();
     } catch (err) { alert(err.message); }
   };

@@ -178,9 +178,11 @@ export async function encargos() {
   if (error) throw error; return data;
 }
 
+/** Dirección limpia del encargo: "26  I  PRUEBA ENCARGO DEMO" → "prueba-encargo-demo" */
+export const slugEncargo = e => (e.nombre || e.codigo).replace(/^\s*\d{2}\s+I\s+/, '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 export async function encargo(codigo) {
   const lista = await encargos();
-  const e = lista.find(x => x.codigo === codigo);
+  const e = lista.find(x => x.codigo === codigo || slugEncargo(x) === codigo);
   if (!e) return null;
   if (MODO_DEMO) { e.responsables = leer().responsables.filter(r => r.encargo_id === e.id).sort((a, b) => a.numero - b.numero); return e; }
   const { data } = await (await cliente()).from('encargo_responsables').select('*').eq('encargo_id', e.id).order('numero');
