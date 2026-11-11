@@ -334,3 +334,10 @@ input.ancho-p{width:120px}
 .td-txt b{font-weight:500;font-family:var(--t-titulo)}
 @media (max-width:480px){.tarjeta-doc{flex-wrap:wrap}.tarjeta-doc .btn{width:100%}}
 body.generando{cursor:progress}body.generando .btn{pointer-events:none;opacity:.6}
+.pend-oculta{display:none!important}
+.pend-mas{margin-top:10px}
+.mon-sal{display:flex;justify-content:center;gap:18px;flex-wrap:wrap;font-size:12.5px;color:var(--gris);margin-top:10px}
+.mon-sal b{color:var(--negro);font-weight:500}
+.pend-fila{grid-template-columns:minmax(150px,1.2fr) auto minmax(300px,2.4fr) auto}
+.pend-sel select{flex:1 1 110px}
+@media (max-width:1100px) and (min-width:761px){.pend-fila{grid-template-columns:1fr auto auto}.pend-sel{grid-column:1/-1;order:3}.pend-acc{order:2}}

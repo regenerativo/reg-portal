@@ -23,7 +23,9 @@ export async function vistaFinanzas(mesSel, listaSel) {
   const enLista = x => lista === 'todo' || (lista === 'general' ? !x.encargo_id : x.encargo_id === lista);
   const delMes = movs.filter(x => mesDe(x.fecha) === mes && enLista(x));
   const suma = (l, t) => l.filter(x => x.tipo === t).reduce((s, x) => s + Number(x.valor), 0);
-  const ing = suma(delMes, 'ingreso'), gas = suma(delMes, 'gasto');
+  const SALARIO = cats.find(c => c.nombre === 'Nómina y honorarios')?.id;
+  const esSal = x => x.categoria_id === SALARIO;
+  const ing = suma(delMes, 'ingreso'), gas = suma(delMes.filter(x => !esSal(x)), 'gasto'), sal = suma(delMes.filter(esSal), 'gasto');
 
   // Por cobrar: plan de pagos de la propuesta + adendas aprobadas, menos ingresos registrados por encargo
   const porEnc = encargos.map(e => {
@@ -41,13 +43,14 @@ export async function vistaFinanzas(mesSel, listaSel) {
   const serie = meses.map(k => ({ k, ing: suma(movs.filter(x => mesDe(x.fecha) === k), 'ingreso'), gas: suma(movs.filter(x => mesDe(x.fecha) === k), 'gasto') }));
 
   // Presupuesto por categoría (gastos del mes)
-  const catsGasto = cats.filter(c => c.tipo === 'gasto').map(c => ({ ...c, gastado: delMes.filter(x => x.categoria_id === c.id).reduce((s, x) => s + Number(x.valor), 0) }));
+  const catsGasto = cats.filter(c => c.tipo === 'gasto' && c.id !== SALARIO).map(c => ({ ...c, gastado: delMes.filter(x => x.categoria_id === c.id).reduce((s, x) => s + Number(x.valor), 0) }));
   const presTotal = catsGasto.reduce((s, c) => s + Number(c.presupuesto_mensual || 0), 0);
   const ejemplos = movs.some(x => x.ejemplo);
   const prev = new Date(a, m - 2, 1), next = new Date(a, m, 1);
   const k = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 
-  const balance = ing - gas;
+  const balance = ing - gas;   // operación: sin tu salario
+  const queda = balance - sal;
   const listas = [['todo', 'Todo regenerativo'], ['general', 'Gastos generales'], ...encargos.map(e => [e.id, e.nombre])];
   const maxCol = Math.max(1, ...catsGasto.map(c => Math.max(c.gastado, Number(c.presupuesto_mensual || 0))));
   const H = 190;
@@ -56,7 +59,7 @@ export async function vistaFinanzas(mesSel, listaSel) {
     ${ejemplos ? `<div class="aviso-ej">Hay movimientos de ejemplo para que veas cómo funciona. <button class="btn sec mini" id="borrar-ej">Borrar ejemplos</button></div>` : ''}
     ${pend.length ? `<section class="pend">
       <div class="pend-cab"><h3>Por confirmar <span class="pend-n">${pend.length}</span></h3><span class="sub">Llegaron al correo. No cuentan en los totales hasta que les des ✓.</span></div>
-      ${pend.map(x => `<div class="pend-fila" data-pend="${x.id}">
+      ${pend.map((x, i) => `<div class="pend-fila ${i >= 4 ? 'pend-oculta' : ''}" data-pend="${x.id}">
         <div class="pend-txt"><span class="sub">${fecha(x.fecha)}${x.medio ? ' · ' + esc(x.medio) : ''}</span><b>${esc(x.descripcion || '')}</b>${x.nota_correo ? `<span class="pend-nota">${esc(x.nota_correo)}</span>` : ''}</div>
         <div class="pend-val ${x.tipo}">${x.tipo === 'ingreso' ? '+' : x.tipo === 'gasto' ? '−' : ''} ${cop(x.valor)}</div>
         <div class="pend-sel">
@@ -66,12 +69,14 @@ export async function vistaFinanzas(mesSel, listaSel) {
         </div>
         <div class="pend-acc"><button class="btn mini" data-ok>✓</button><button class="btn sec mini" data-no title="Descartar (no es un movimiento real)">✕</button></div>
       </div>`).join('')}
+      ${pend.length > 4 ? `<button class="btn sec mini pend-mas" id="pend-mas">Ver los ${pend.length - 4} restantes</button>` : ''}
     </section>` : ''}
     <section class="mon">
       <div class="mon-total">
-        <div class="mon-et">Balance</div>
+        <div class="mon-et">Balance de la operación</div>
         <div class="mon-cifra">${balance < 0 ? '−' : '+'}${cop(Math.abs(balance)).replace(' COP', '')}<span>COP</span></div>
         <div class="mon-pills"><span class="pill-gas">− ${cop(gas)}</span><span class="pill-ing">+ ${cop(ing)}</span></div>
+        <div class="mon-sal"><span>Tu salario <b>${cop(sal)}</b></span><span>Queda en regenerativo <b class="${queda < 0 ? 'xxx' : ''}">${queda < 0 ? '−' : ''}${cop(Math.abs(queda))}</b></span></div>
         <div class="mon-filtros">
           <a href="#/finanzas/${k(prev)}/${lista}" class="mon-flecha">‹</a><b>${mesTxt}</b><a href="#/finanzas/${k(next)}/${lista}" class="mon-flecha">›</a>
           <span class="sub">en</span>
@@ -118,6 +123,7 @@ export async function vistaFinanzas(mesSel, listaSel) {
   return { html, montar: recargar => {
     document.querySelectorAll('[data-nuevo]').forEach(b => b.onclick = () => modalMov({ tipo: b.dataset.nuevo, fecha: iso(new Date()) }, cats, encargos, recargar));
     document.querySelectorAll('[data-editar]').forEach(b => b.onclick = () => modalMov(movs.find(x => x.id === b.dataset.editar), cats, encargos, recargar));
+    const pm = $('#pend-mas'); if (pm) pm.onclick = () => { document.querySelectorAll('.pend-oculta').forEach(f => f.classList.remove('pend-oculta')); pm.remove(); };
     document.querySelectorAll('[data-pend]').forEach(fila => {
       const sel = n => fila.querySelector(`[data-f="${n}"]`);
       sel('tipo').onchange = () => { sel('categoria_id').innerHTML = opsCat(cats, sel('tipo').value); sel('categoria_id').disabled = sel('tipo').value === 'socio'; };
