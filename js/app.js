@@ -73,23 +73,27 @@ function marco(s, { titulo, ruta = '', acciones = '', html, menu = null, activo 
     ${s.facturacion ? `<a href="#/finanzas" class="${activo === 'finanzas' ? 'activo' : ''}">Finanzas</a>` : ''}
     ${s.admin ? `<a href="#/base-precios" class="${activo === 'base' ? 'activo' : ''}">Base de precios</a>` : ''}
     ${s.admin ? `<a href="#/ajustes" class="${activo === 'ajustes' ? 'activo' : ''}">Ajustes generales</a>` : ''}`;
+  const tituloPag = ruta.includes(' / ') ? ruta.split(' / ').pop() : titulo;
+  const subPag = ruta.includes(' / ') ? titulo : '';
   raiz.innerHTML = `
+  <header class="barra-web">
+    <div class="barra-web-in">
+      <div class="barra-izq"><button class="menu-movil" id="abrir-menu" aria-label="Menú">☰</button><span class="barra-enc">${titulo}</span></div>
+      <a href="#/" class="logo-reg" aria-label="regenerativo, inicio">regenerativo</a>
+    </div>
+  </header>
   <div class="app">
     <nav class="lado" id="lado">
-      
       ${menu || ''}
       ${enlacesGen}
       <div class="pie">${s.email.endsWith('@clientes.portal.regenerativo.co') ? 'Acceso de cliente' : esc(s.email)}<br><button id="salir">Cerrar sesión</button></div>
     </nav>
     <div class="main">
       ${D.MODO_DEMO ? '<div class="demo">Modo demostración: los datos son de ejemplo y se guardan solo en este navegador.</div>' : ''}
-      <header class="cabeza">
-        <div style="display:flex;gap:12px;align-items:center;min-width:0">
-          <button class="menu-movil" id="abrir-menu" aria-label="Menú">☰</button>
-          <div style="min-width:0"><div class="ruta">${ruta}</div><h1>${titulo}</h1></div>
-        </div>
-        <div class="cab-der"><div class="acciones">${acciones}</div><a href="#/" class="logo-reg" aria-label="regenerativo, inicio">regenerativo</a></div>
-      </header>
+      <div class="titulo-pag">
+        <div><h1>${tituloPag}</h1>${subPag ? `<p>${subPag}</p>` : ''}</div>
+        <div class="acciones">${acciones}</div>
+      </div>
       <main class="cont">${html}</main>
       <footer class="remate">
         <div class="remate-cols">
