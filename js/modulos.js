@@ -103,10 +103,9 @@ const NOMBRE_TARJETA = { propuesta: 'la propuesta económica', contrato: 'el con
 function tarjetaDescarga(ctx, d, tipo, i) {
   const titulo = tipo === 'adenda' ? `Adenda ${String(d.numero).padStart(2, '0')}` : tipo === 'contrato' ? 'Contrato' : 'Propuesta económica';
   return `<div class="tarjeta-doc">
-    <div class="td-ico">PDF</div>
     <div class="td-txt"><b>${titulo}</b><span>A continuación encuentras el documento de ${NOMBRE_TARJETA[tipo]}.</span>
       <span class="sub">Versión ${d.version} · ${fecha(d.fecha)}${d.estado === 'aprobado' || d.estado === 'firmado' ? ' · ' + ESTADOS_DOC[d.estado] : ''}</span></div>
-    <button class="btn mini" data-dl="${i}">Descargar</button></div>`;
+    <button class="btn-dl" data-dl="${i}">Descargar PDF <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M7 1v9M3 6.5l4 4 4-4M1.5 13h11" fill="none" stroke="currentColor" stroke-width="1.3"/></svg></button></div>`;
 }
 function vistaClienteDocs(ctx, items) {
   return {
