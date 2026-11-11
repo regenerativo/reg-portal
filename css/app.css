@@ -230,7 +230,7 @@ input.ancho-p{width:120px}
   #impresion{font-family:var(--t-texto);font-size:10.5pt;color:var(--negro);padding:0.55in 0.59in 1.0in 0.79in}
   .imp-cabeza{display:flex;justify-content:space-between;align-items:flex-start}
   .imp-servicio{font-family:var(--t-titulo);font-weight:500;font-size:11pt;letter-spacing:.04em}
-  .imp-servicios{font-family:var(--t-titulo);font-weight:300;font-size:10pt}
+  .imp-servicios{font-family:var(--t-titulo);font-weight:300;font-size:10pt;color:#8A8A8A}
   .imp-codigo{font-family:var(--t-titulo);font-size:9.5pt}
   .imp-banda{height:0.30in;background:var(--gris-claro);margin:0.18in -0.59in 0.35in -0.79in}
   .imp-cuerpo table{width:100%;border-collapse:collapse;margin:4pt 0;page-break-inside:auto}

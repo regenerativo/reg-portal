@@ -21,13 +21,11 @@ export function nombreArchivo(e, tipo, doc, ext) {
 }
 
 // ---------------- Impresión con membrete (papel legal) ----------------
-const DESCRIPTOR = { brief: 'Brief', propuesta: 'Propuesta de servicios', contrato: 'Contrato', adenda: 'Adenda', informe: 'Informe de avance' };
-// Membrete único de regenerativo: segunda línea = tipo de documento I encargo; derecha = página + referencia
+const DESCRIPTOR = { brief: 'BRIEF', propuesta: 'PROPUESTA', contrato: 'CONTRATO', adenda: 'ADENDA', informe: 'INFORME', cuenta: 'CUENTA DE COBRO' };
+// Membrete único: izquierda servicio + "Servicios" (gris); derecha tipo de documento + fecha (gris)
 function membrete(e, tipo, d) {
-  const n = d?.numero ? ' ' + String(d.numero).padStart(2, '0') : '';
-  const documento = `${DESCRIPTOR[tipo] || 'Servicios'}${tipo === 'adenda' || tipo === 'informe' ? n : ''}   I   ${nombreSinAnio(e)}`;
-  const codigo = tipo === 'contrato' && d?.contenido?.numero ? `No. ${d.contenido.numero} _ ${fechaCodigo(d.fecha)}` : `${e.codigo}_${nombreSinAnio(e)} _ ${fechaCodigo(d?.fecha || new Date())}`;
-  return { documento, codigo };
+  const n = d?.numero && ['adenda', 'informe', 'cuenta'].includes(tipo) ? ' ' + String(d.numero).padStart(2, '0') : '';
+  return { documento: (DESCRIPTOR[tipo] || 'DOCUMENTO') + n, codigo: fechaCodigo(d?.fecha || new Date()) };
 }
 export async function imprimir(e, codigoFecha, cuerpo, nombre, documento) {
   try {
@@ -42,8 +40,8 @@ function imprimirNavegador(e, codigoFecha, cuerpo, documento) {
   let cont = $('#impresion');
   if (!cont) { cont = document.createElement('div'); cont.id = 'impresion'; document.body.appendChild(cont); }
   cont.innerHTML = `
-    <div class="imp-cabeza"><div><div class="imp-servicio">${esc((e.servicio?.nombre || 'XXX').toUpperCase())}</div><div class="imp-servicios">${esc(documento || 'Servicios')}</div></div>
-      <div class="imp-codigo">${esc(codigoFecha)}</div></div>
+    <div class="imp-cabeza"><div><div class="imp-servicio">${esc((e.servicio?.nombre || 'XXX').toUpperCase())}</div><div class="imp-servicios">Servicios</div></div>
+      <div style="text-align:right"><div class="imp-servicio">${esc(documento || '')}</div><div class="imp-servicios">${esc(codigoFecha)}</div></div></div>
     <div class="imp-banda"></div>
     <div class="imp-cuerpo">${cuerpo}</div>
     <div class="imp-pie"><div class="firma"><span class="por">Por</span><span class="linea"></span><span class="reg">regenerativo</span></div>
