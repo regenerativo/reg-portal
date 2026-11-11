@@ -38,12 +38,13 @@ async function irSeguro() {
   if (enlace) { history.replaceState(null, '', location.pathname + '#/'); }
   const ruta = location.hash.replace(/^#/, '') || '/';
   const s = await D.sesion();
-  if (s) { s.admin = await D.esAdmin(); s.facturacion = s.admin && await D.esFacturacion(); }  // se guarda en memoria por sesión (datos.js)
+  if (s) { s.admin = await D.esAdmin(); s.facturacion = await D.esFacturacion(); s.soloFinanzas = s.facturacion && !s.admin; }  // se guarda en memoria por sesión (datos.js)
   if (!s && ruta !== '/acceso' && ruta !== '/recuperar') { location.hash = '#/acceso'; return; }
   if (ruta === '/acceso') return vistaAcceso();
   if (ruta === '/recuperar') return vistaRecuperar();
   if (ruta === '/nueva-clave') return vistaNuevaClave({ tipo: 'recovery' });
   const p = ruta.split('/').filter(Boolean);
+  if (s.soloFinanzas && p[0] !== 'finanzas') { location.hash = '#/finanzas'; return; }   // facturacion@ solo ve Finanzas
   try {
     if (p.length === 0) return await vistaEncargos(s);
     if (p[0] === 'encargos' && p[1]) return await vistaExpediente(s, decodeURIComponent(p[1]), p[2] || 'resumen', p[3]);
@@ -67,7 +68,7 @@ function marco(s, { titulo, ruta = '', acciones = '', html, menu = null, activo 
   const enlacesGen = `
     <div class="grupo">Portal</div>
     ${s.admin ? `<a href="#/propuestas" class="${activo === 'propuestas' ? 'activo' : ''}">Propuestas preliminares</a>` : ''}
-    <a href="#/" class="${activo === 'encargos' ? 'activo' : ''}">Encargos</a>
+    ${s.soloFinanzas ? '' : `<a href="#/" class="${activo === 'encargos' ? 'activo' : ''}">Encargos</a>`}
     ${s.facturacion ? `<a href="#/finanzas" class="${activo === 'finanzas' ? 'activo' : ''}">Finanzas</a>` : ''}
     ${s.admin ? `<a href="#/base-precios" class="${activo === 'base' ? 'activo' : ''}">Base de precios</a>` : ''}
     ${s.admin ? `<a href="#/ajustes" class="${activo === 'ajustes' ? 'activo' : ''}">Ajustes generales</a>` : ''}`;
