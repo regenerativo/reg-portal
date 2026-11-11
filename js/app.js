@@ -222,11 +222,10 @@ async function vistaEncargos(s) {
       (!q || [e.nombre, e.codigo, e.cliente?.nombre].join(' ').toLowerCase().includes(q)));
     $('#tabla').innerHTML = f.length ? `
       <div class="tabla-cont"><table>
-        <thead><tr><th class="col-opc">Cotización</th><th>Encargo</th><th class="col-opc">Cliente</th><th class="col-opc">Tipo</th><th class="col-opc">Inicio</th><th class="col-opc">Fin</th><th>Tiempo</th><th>Estado</th></tr></thead>
+        <thead><tr><th>Encargo</th><th class="col-opc">Cliente</th><th class="col-opc">Tipo</th><th class="col-opc">Inicio</th><th class="col-opc">Fin</th><th>Tiempo</th><th>Estado</th></tr></thead>
         <tbody>${f.map(e => `
           <tr class="clic" data-c="${D.slugEncargo(e)}">
-            <td class="sub col-opc">${esc(e.codigo)}</td>
-            <td><b>${esc(e.nombre)}</b><div class="sub">${esc(e.servicio?.nombre || '')}<span class="solo-movil"> · ${esc(e.codigo)}</span></div></td>
+            <td><b>${esc(e.nombre)}</b><div class="sub">${esc(e.servicio?.nombre || '')}</div></td>
             <td class="col-opc">${xxx(e.cliente?.nombre)}</td>
             <td class="col-opc">${TIPOS[e.tipo] || ''}</td>
             <td class="col-opc">${fecha(e.inicio)}</td><td class="col-opc">${fecha(e.fin)}</td>
@@ -265,7 +264,7 @@ async function modalEncargo(e = null) {
     <h2>${e ? 'Datos generales del encargo' : 'Nuevo encargo'}</h2>
     <p class="sub">Se escriben una sola vez y se usan en todos los documentos del encargo.</p>
     <div class="grilla-form">
-      <div><label>Código</label><input name="codigo" value="${esc(codigo)}" required ${e ? 'readonly' : ''}></div>
+      <div><label>Cotización</label><input name="codigo" value="${esc(codigo)}" required ${e ? 'readonly' : ''}></div>
       <div><label>Nombre del encargo</label><input name="nombre" value="${esc(e?.nombre || '')}" placeholder="26 I CEREZO 44" required></div>
       <div><label>Cliente</label><select name="cliente_id"><option value="">— Elegir —</option>${op(cli, e?.cliente_id)}<option value="__nuevo">+ Nuevo cliente…</option></select></div>
       <div><label>Servicio</label><select name="servicio_id">${op(svc, e?.servicio_id)}</select></div>
@@ -348,7 +347,6 @@ async function vistaExpediente(s, codigo, seccion, sub) {
           <h3>Detalles técnicos del encargo</h3>
           <dl class="datos">
             <dt>Encargo</dt><dd class="det">${esc(e.nombre)}</dd>
-            <dt>Cotización</dt><dd class="det">${esc(e.codigo)}</dd>
             <dt>Cliente</dt><dd class="det">${xxx(e.cliente?.nombre)}</dd>
             <dt>Servicio</dt><dd class="det">${xxx(e.servicio?.nombre)}</dd>
             <dt>Tipo</dt><dd class="det">${TIPOS[e.tipo] || ''}</dd>

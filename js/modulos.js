@@ -417,7 +417,7 @@ async function informes(ctx) {
     <h1 class="doc-titulo">Informe de avance de obra ${String(d.numero).padStart(2, '0')}</h1><p class="doc-sub">Corte al ${fecha(g.corte)}</p>
     <h3>Detalles técnicos del encargo</h3>
     <dl class="datos det">
-      <dt>Encargo</dt><dd>${esc(ctx.e.nombre)}</dd><dt>Cotización</dt><dd>${esc(ctx.e.codigo)}</dd><dt>Cliente</dt><dd>${xxx(ctx.e.cliente?.nombre)}</dd>
+      <dt>Encargo</dt><dd>${esc(ctx.e.nombre)}</dd><dt>Cliente</dt><dd>${xxx(ctx.e.cliente?.nombre)}</dd>
       <dt>Ubicación</dt><dd>${xxx(ctx.e.direccion)}</dd><dt>Inicio · Fin</dt><dd>${fecha(ctx.e.inicio)} · ${fecha(ctx.e.fin)}</dd><dt>Días de trabajo</dt><dd>${DIAS_TRABAJO[ctx.e.dias_trabajo]}</dd></dl>
     <h3>Resumen del avance</h3>
     <table><tbody><tr><td>Esperado al corte</td><td class="num">${pct(g.esperadoTotal)}</td></tr><tr><td>Avance real</td><td class="num">${pct(g.realTotal)}</td></tr>
