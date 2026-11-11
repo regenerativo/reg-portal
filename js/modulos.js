@@ -25,7 +25,8 @@ const DESCRIPTOR = { brief: 'BRIEF', propuesta: 'PROPUESTA', contrato: 'CONTRATO
 // Membrete único: izquierda servicio + "Servicios" (gris); derecha tipo de documento + fecha (gris)
 function membrete(e, tipo, d) {
   const n = d?.numero && ['adenda', 'informe', 'cuenta'].includes(tipo) ? ' ' + String(d.numero).padStart(2, '0') : '';
-  return { documento: (DESCRIPTOR[tipo] || 'DOCUMENTO') + n, codigo: fechaCodigo(d?.fecha || new Date()) };
+  const ref = tipo === 'contrato' && d?.contenido?.numero ? d.contenido.numero : e.codigo;
+  return { documento: `${DESCRIPTOR[tipo] || 'DOCUMENTO'}${n} _ ${ref}`, codigo: fechaCodigo(d?.fecha || new Date()) };
 }
 export async function imprimir(e, codigoFecha, cuerpo, nombre, documento) {
   try {
