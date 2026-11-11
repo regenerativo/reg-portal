@@ -341,3 +341,4 @@ body.generando{cursor:progress}body.generando .btn{pointer-events:none;opacity:.
 .pend-fila{grid-template-columns:minmax(150px,1.2fr) auto minmax(300px,2.4fr) auto}
 .pend-sel select{flex:1 1 110px}
 @media (max-width:1100px) and (min-width:761px){.pend-fila{grid-template-columns:1fr auto auto}.pend-sel{grid-column:1/-1;order:3}.pend-acc{order:2}}
+.fila-enc{cursor:pointer}.fila-enc:hover td{background:#FAF8F3}

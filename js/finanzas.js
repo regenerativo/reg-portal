@@ -35,7 +35,7 @@ export async function vistaFinanzas(mesSel, listaSel) {
     const recibido = suma(movs.filter(x => x.encargo_id === e.id), 'ingreso');
     const gastos = suma(movs.filter(x => x.encargo_id === e.id), 'gasto');
     return { e, esperado, recibido, gastos, porCobrar: Math.max(0, esperado - recibido), neto: recibido - gastos };
-  }).filter(r => r.esperado || r.recibido || r.gastos);
+  });   // todos los encargos, aunque aún no tengan movimientos
   const porCobrar = porEnc.reduce((s, r) => s + r.porCobrar, 0);
 
   // Últimos 6 meses
@@ -114,9 +114,10 @@ export async function vistaFinanzas(mesSel, listaSel) {
     </div>
     <div class="dos">
       <section class="panel"><h3>Ingresos y gastos de la operación · últimos 6 meses</h3>${barras(serie)}</section>
-      <section class="panel"><h3>Por encargo</h3>
-      ${porEnc.length ? `<div class="tabla-cont"><table><thead><tr><th>Encargo</th><th class="num">Acordado</th><th class="num">Recibido</th><th class="num">Por cobrar</th><th class="num col-opc">Neto</th></tr></thead><tbody>
-      ${porEnc.map(r => `<tr><td><b>${esc(r.e.nombre)}</b></td><td class="num">${cop(r.esperado)}</td><td class="num">${cop(r.recibido)}</td><td class="num">${cop(r.porCobrar)}</td><td class="num col-opc">${cop(r.neto)}</td></tr>`).join('')}
+      <section class="panel"><h3>Encargos</h3><p class="sub">Toca un encargo para ver solo sus movimientos.</p>
+      ${porEnc.length ? `<div class="tabla-cont"><table><thead><tr><th>Encargo</th><th class="num">Acordado</th><th class="num">Recibido</th><th class="num">Por cobrar</th><th class="num col-opc">Gastos</th><th class="num col-opc">Neto</th></tr></thead><tbody>
+      ${porEnc.map(r => `<tr class="fila-enc" data-lista="${r.e.id}"><td><b>${esc(r.e.nombre)}</b><div class="sub">${esc(r.e.codigo)}</div></td><td class="num">${cop(r.esperado)}</td><td class="num">${cop(r.recibido)}</td><td class="num">${cop(r.porCobrar)}</td><td class="num col-opc">${cop(r.gastos)}</td><td class="num col-opc">${cop(r.neto)}</td></tr>`).join('')}
+      <tr class="total"><td>Total</td><td class="num">${cop(porEnc.reduce((a, r) => a + r.esperado, 0))}</td><td class="num">${cop(porEnc.reduce((a, r) => a + r.recibido, 0))}</td><td class="num">${cop(porCobrar)}</td><td class="num col-opc">${cop(porEnc.reduce((a, r) => a + r.gastos, 0))}</td><td class="num col-opc">${cop(porEnc.reduce((a, r) => a + r.neto, 0))}</td></tr>
       </tbody></table></div>` : '<div class="vacio">Sin movimientos por encargo.</div>'}</section>
     </div>`;
 
@@ -139,6 +140,7 @@ export async function vistaFinanzas(mesSel, listaSel) {
     const ep = () => modalPresupuesto(cats.filter(c => c.tipo === 'gasto'), recargar);
     $('#editar-pres').onclick = ev => { ev.preventDefault(); ep(); };
     document.querySelectorAll('[data-cat]').forEach(x => x.onclick = () => modalMov({ tipo: 'gasto', fecha: iso(new Date()), categoria_id: x.dataset.cat, encargo_id: ['todo', 'general'].includes(lista) ? null : lista }, cats, encargos, recargar));
+    document.querySelectorAll('[data-lista]').forEach(f => f.onclick = () => { location.hash = `#/finanzas/${mes}/${f.dataset.lista}`; scrollTo(0, 0); });
     $('#lista').onchange = ev => { location.hash = `#/finanzas/${mes}/${ev.target.value}`; };
     document.querySelectorAll('.g-col').forEach(col => {
       col.onmouseenter = () => { const t = $('#tip-fin'); t.innerHTML = col.dataset.tip; t.style.display = 'block'; };
