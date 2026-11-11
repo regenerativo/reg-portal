@@ -21,20 +21,28 @@ export function nombreArchivo(e, tipo, doc, ext) {
 }
 
 // ---------------- Impresión con membrete (papel legal) ----------------
-export async function imprimir(e, codigoFecha, cuerpo, nombre) {
+const DESCRIPTOR = { brief: 'Brief', propuesta: 'Propuesta de servicios', contrato: 'Contrato', adenda: 'Adenda', informe: 'Informe de avance' };
+// Membrete único de regenerativo: segunda línea = tipo de documento I encargo; derecha = página + referencia
+function membrete(e, tipo, d) {
+  const n = d?.numero ? ' ' + String(d.numero).padStart(2, '0') : '';
+  const documento = `${DESCRIPTOR[tipo] || 'Servicios'}${tipo === 'adenda' || tipo === 'informe' ? n : ''}   I   ${nombreSinAnio(e)}`;
+  const codigo = tipo === 'contrato' && d?.contenido?.numero ? `No. ${d.contenido.numero} _ ${fechaCodigo(d.fecha)}` : `${e.codigo}_${nombreSinAnio(e)} _ ${fechaCodigo(d?.fecha || new Date())}`;
+  return { documento, codigo };
+}
+export async function imprimir(e, codigoFecha, cuerpo, nombre, documento) {
   try {
     document.body.classList.add('generando');
-    await descargarPDF({ servicio: e.servicio?.nombre, codigo: codigoFecha, nombre: nombre || `${codigoFecha} _ ${e.nombre}.pdf`, cuerpoHTML: cuerpo });
+    await descargarPDF({ servicio: e.servicio?.nombre, documento, codigo: codigoFecha, nombre: nombre || `${codigoFecha} _ ${e.nombre}.pdf`, cuerpoHTML: cuerpo });
     return;
   } catch (err) { console.warn('PDF directo no disponible, uso impresión del navegador', err); }
   finally { document.body.classList.remove('generando'); }
-  imprimirNavegador(e, codigoFecha, cuerpo);
+  imprimirNavegador(e, codigoFecha, cuerpo, documento);
 }
-function imprimirNavegador(e, codigoFecha, cuerpo) {
+function imprimirNavegador(e, codigoFecha, cuerpo, documento) {
   let cont = $('#impresion');
   if (!cont) { cont = document.createElement('div'); cont.id = 'impresion'; document.body.appendChild(cont); }
   cont.innerHTML = `
-    <div class="imp-cabeza"><div><div class="imp-servicio">${esc((e.servicio?.nombre || 'XXX').toUpperCase())}</div><div class="imp-servicios">Servicios</div></div>
+    <div class="imp-cabeza"><div><div class="imp-servicio">${esc((e.servicio?.nombre || 'XXX').toUpperCase())}</div><div class="imp-servicios">${esc(documento || 'Servicios')}</div></div>
       <div class="imp-codigo">${esc(codigoFecha)}</div></div>
     <div class="imp-banda"></div>
     <div class="imp-cuerpo">${cuerpo}</div>
@@ -81,8 +89,8 @@ function montarBarra(ctx, d, tipo, cuerpoImpresion) {
         await D.aprobarDocumento(d.id, nombre, cedula); return ctx.recargar();
       }
       const cuerpo = cuerpoImpresion();
-      const codigo = `${ctx.e.codigo}_${nombreSinAnio(ctx.e)} _ ${fechaCodigo(d.fecha)}`;
-      if (acc === 'pdf') imprimir(ctx.e, codigo, cuerpo, nombreArchivo(ctx.e, tipo, d, 'pdf'));
+      const m = membrete(ctx.e, tipo, d);
+      if (acc === 'pdf') imprimir(ctx.e, m.codigo, cuerpo, nombreArchivo(ctx.e, tipo, d, 'pdf'), m.documento);
       if (acc === 'word') descargar(nombreArchivo(ctx.e, tipo, d, 'doc'), cuerpo, 'doc');
     } catch (err) { alert(err.message); }
   });
@@ -106,7 +114,8 @@ function vistaClienteDocs(ctx, items) {
     html: items.map((x, i) => tarjetaDescarga(ctx, x.d, x.tipo, i)).join(''),
     montar: () => document.querySelectorAll('[data-dl]').forEach(b => b.onclick = () => {
       const x = items[Number(b.dataset.dl)];
-      imprimir(ctx.e, `${ctx.e.codigo}_${nombreSinAnio(ctx.e)} _ ${fechaCodigo(x.d.fecha)}`, x.cuerpo(), nombreArchivo(ctx.e, x.tipo, x.d, 'pdf'));
+      const m = membrete(ctx.e, x.tipo, x.d);
+      imprimir(ctx.e, m.codigo, x.cuerpo(), nombreArchivo(ctx.e, x.tipo, x.d, 'pdf'), m.documento);
     }),
   };
 }
