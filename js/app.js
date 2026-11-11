@@ -318,7 +318,7 @@ async function vistaExpediente(s, codigo, seccion, sub) {
   const base = `#/encargos/${encodeURIComponent(codigo)}`;
   const rol = s.admin ? 'admin' : await D.miRol(e.id);
   const visibles = MODULOS.filter(([k]) => moduloAplica(k, e.tipo) && (k !== 'ajustes' || admin) && !(k === 'adendas' && rol === 'cliente'));
-  const menu = `<div class="grupo">${esc(e.nombre)}</div>` + visibles.map(([k, n, listo]) =>
+  const menu = visibles.map(([k, n, listo]) =>
     `<a href="${base}/${k}" class="${k === seccion ? 'activo' : ''}">${n}${listo ? '' : '<span class="pronto">Próximamente</span>'}</a>`).join('');
   const nombreSec = (MODULOS.find(m => m[0] === seccion) || [, 'Resumen'])[1];
   const comun = { s, menu, ruta: `Encargos / ${esc(e.codigo)}`, titulo: esc(e.nombre) };
